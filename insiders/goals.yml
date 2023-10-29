@@ -1,0 +1,7 @@
+goals:
+  1000:
+    name: GraviFridge User Manual
+    features:
+    - name: "[Project] Manage your Insiders projects"
+      ref: /
+      since: 2023/10/29
