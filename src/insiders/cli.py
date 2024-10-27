@@ -254,6 +254,56 @@ class CommandPyPI(HelpOption):
 
 
 @cappa.command(
+    name="sync",
+    help="Synchronize members of a team with current sponsors.",
+    description=cleandoc(
+        """
+        Fetch current sponsors from GitHub,
+        then grant or revoke access to a GitHub team
+        for eligible sponsors.
+        """,
+    ),
+)
+@dataclass(kw_only=True)
+class CommandSync(HelpOption):
+    """Command to sync team memberships with current sponsors."""
+
+    github_sponsored_account: An[
+        str,
+        cappa.Arg(short=False, long=True),
+        Doc("""The sponsored account on GitHub Sponsors."""),
+    ]
+    polar_sponsored_account: An[
+        str,
+        cappa.Arg(short=False, long=True),
+        Doc("""The sponsored account on Polar."""),
+    ]
+    min_amount: An[
+        int,
+        cappa.Arg(short=False, long=True),
+        Doc("""Minimum amount to be considered an Insider."""),
+    ]
+    github_team: An[
+        str,
+        cappa.Arg(short=False, long=True),
+        Doc("""The GitHub team to sync."""),
+    ]
+    github_privileged_users: An[
+        list[str],
+        cappa.Arg(short=False, long=True),
+        Doc("""Users that should always be in the team."""),
+    ]
+    github_org_users: An[
+        dict[str, list[str]],
+        cappa.Arg(short=False, long=True),
+        Doc("""A mapping of users belonging to sponsoring organizations."""),
+    ]
+
+    def __call__(self) -> int:  # noqa: D102
+        raise NotImplementedError("Not implemented yet.")
+
+
+@cappa.command(
     name=NAME,
     help="Manage your Insiders projects.",
     description=cleandoc(
