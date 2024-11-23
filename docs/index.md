@@ -12,7 +12,7 @@ import cappa
 from cappa.base import collect
 from cappa.help import generate_arg_groups
 
-from insiders.cli import CommandMain
+from insiders._internal.cli import CommandMain
 
 
 def render_parser(command: cappa.Command, title: str, heading_level: int = 3) -> str:
@@ -24,8 +24,8 @@ def render_parser(command: cappa.Command, title: str, heading_level: int = 3) ->
     if command.description:
         result.append(f"{command.description}\n")
 
-    for group, args in sorted(generate_arg_groups(command)):
-        result.append(f"*{group.name.title()}*\n")
+    for (name, _), args in sorted(generate_arg_groups(command)):
+        result.append(f"*{name.title()}*\n")
         for arg in args:
             if isinstance(arg, cappa.Subcommand):
                 for option in arg.options.values():
