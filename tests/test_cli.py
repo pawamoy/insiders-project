@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from insiders import cli, debug
+from insiders._internal import cli, debug
 
 
 def test_main() -> None:

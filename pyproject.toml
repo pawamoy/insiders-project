@@ -48,7 +48,7 @@ Gitter = "https://gitter.im/insiders/community"
 Funding = "https://github.com/sponsors/pawamoy"
 
 [project.scripts]
-insiders = "insiders.cli:main"
+insiders = "insiders:main"
 
 [tool.pdm]
 version = {source = "scm"}
