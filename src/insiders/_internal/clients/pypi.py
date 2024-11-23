@@ -1,5 +1,7 @@
 """PyPI integration."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -13,6 +15,8 @@ from pypi_insiders.logger import log_captured, logger, redirect_output_to_loggin
 from twine.commands.upload import upload
 from twine.settings import Settings
 from typing_extensions import Doc
+
+# TODO: Rewrite as a proper Client subclass.
 
 
 def _git_user_name(default: str = "") -> str:

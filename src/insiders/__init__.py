@@ -5,9 +5,26 @@ Manage your Insiders projects.
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from insiders._internal.cli import main
+from insiders._internal.clients.github import GitHub
+from insiders._internal.clients.index import Index
+from insiders._internal.clients.polar import Polar
+from insiders._internal.models import Account, Backlog, Issue, IssueDict, Org, Sponsors, Sponsorship, User
+from insiders._internal.ops.backlog import get_backlog, print_backlog
 
-# TODO: Reorganize code by platform (GitHub, Polar, etc).
-# Then create an aggregation module (for example, augmenting GitHub issues with Polar data).
-# Then create higher modules for each concept (sponsors, backlog, etc).
-# Hook everything up in the CLI.
+__all__: list[str] = [
+    "GitHub",
+    "Polar",
+    "Account",
+    "Issue",
+    "IssueDict",
+    "Org",
+    "Sponsors",
+    "Sponsorship",
+    "User",
+    "Backlog",
+    "main",
+    "Index",
+    "get_backlog",
+    "print_backlog",
+]
