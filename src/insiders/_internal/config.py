@@ -166,8 +166,18 @@ class Config:
     @classmethod
     def from_file(cls, path: str | Path) -> Config:
         """Load configuration from a file."""
+        # Load data from the file.
         with open(path, "rb") as file:
             data = tomllib.load(file)
+
+        # Check for unknown configuration keys.
+        field_keys = [field.default.key for field in fields(cls)]  # type: ignore[union-attr]
+        for top_level_key, top_level_value in data.items():
+            for key in top_level_value.keys():  # noqa: SIM118
+                if f"{top_level_key}.{key}" not in field_keys:
+                    raise ValueError(f"Unknown configuration key: '{top_level_key}.{key}'")
+
+        # Create a configuration instance.
         return cls(
             **{
                 field.name: cls._get(
