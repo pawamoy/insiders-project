@@ -7,6 +7,7 @@ from dataclasses import field as dataclass_field
 from typing import TYPE_CHECKING, Any, overload
 
 from insiders._internal.defaults import DEFAULT_CONF_PATH
+from insiders._internal.logger import logger
 from insiders._internal.models import Backlog  # noqa: F401
 
 if TYPE_CHECKING:
@@ -172,10 +173,14 @@ class Config:
 
         # Check for unknown configuration keys.
         field_keys = [field.default.key for field in fields(cls)]  # type: ignore[union-attr]
+        unknown_keys = []
         for top_level_key, top_level_value in data.items():
             for key in top_level_value.keys():  # noqa: SIM118
-                if f"{top_level_key}.{key}" not in field_keys:
-                    raise ValueError(f"Unknown configuration key: '{top_level_key}.{key}'")
+                final_key = f"{top_level_key}.{key}"
+                if final_key not in field_keys:
+                    unknown_keys.append(final_key)
+        if unknown_keys:
+            logger.warning(f"Unknown configuration keys: {', '.join(unknown_keys)}")
 
         # Create a configuration instance.
         return cls(
