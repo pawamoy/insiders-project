@@ -13,7 +13,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from contextlib import nullcontext
@@ -33,32 +32,31 @@ from insiders._internal.clients import pypi
 from insiders._internal.clients.github import GitHub
 from insiders._internal.clients.index import Index
 from insiders._internal.clients.polar import Polar
-from insiders._internal.config import Config
+from insiders._internal.config import Config, Unset
 from insiders._internal.logger import configure_logging
 
+# TODO: Use PEP 727 everywhere.
 # TODO: Re-organize all this.
 from insiders._internal.ops.backlog import get_backlog, print_backlog
 from insiders._internal.ops.projects import new_public_and_insiders_github_projects
 
-_GROUP_GLOBAL = (15, "Global options")
-_GROUP_SUBCOMMANDS = (100, "Subcommands")
-
-
-def from_config(attr_name: str) -> Any:
-    config = CommandMain._load_config()
-    return getattr(config, attr_name)
+_GROUP_ARGUMENTS = (10, "Arguments")
+_GROUP_OPTIONS = (20, "Options")
+_GROUP_GLOBAL_OPTIONS = (30, "Global options")
+_GROUP_SUBCOMMANDS = (40, "Subcommands")
 
 
 @dataclass(frozen=True)
 class FromConfig(cappa.ValueFrom):
-    conf_name: str
+    def __init__(self, field: Unset | property, /) -> None:
+        attr_name = field.fget.__name__ if isinstance(field, property) else field.name  # type: ignore[union-attr]
+        super().__init__(self._from_config, attr_name=attr_name)
 
-    def __init__(self, attr_name: str, conf_name: str) -> None:
-        super().__init__(from_config, attr_name)
-        object.__setattr__(self, "conf_name", conf_name)
-
-    def __str__(self) -> str:
-        return f"configuration value `{self.conf_name}`"
+    @staticmethod
+    def _from_config(attr_name: str) -> Any:
+        config = CommandMain._load_config()
+        value = getattr(config, attr_name)
+        return cappa.Empty if isinstance(value, Unset) else value
 
 
 # ============================================================================ #
@@ -69,7 +67,11 @@ class FromConfig(cappa.ValueFrom):
 class CommandProject:
     """Command to manage projects on GitHub and locally."""
 
-    subcommand: An[cappa.Subcommands[CommandProjectCreate | CommandProjectCheck], Doc("The selected subcommand.")]
+    subcommand: An[
+        CommandProjectCreate | CommandProjectCheck,
+        cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
+        Doc("The selected subcommand."),
+    ]
 
 
 @cappa.command(
@@ -127,69 +129,82 @@ class CommandProjectCreate:
 
     namespace: An[
         str,
-        cappa.Arg(short="-n", long=True),
+        cappa.Arg(short="-n", long=True, group=_GROUP_OPTIONS),
         Doc("""Namespace of the public repository."""),
     ]
-    repo: An[
+
+    repository: An[
         str,
-        cappa.Arg(short="-r", long=True),
+        cappa.Arg(short="-r", long=True, group=_GROUP_OPTIONS),
         Doc("""Name of the public repository."""),
     ]
+
     description: An[
         str,
-        cappa.Arg(short="-d", long=True),
+        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
         Doc("""Shared description."""),
     ]
-    repo_path: An[
+
+    local_path: An[
         Path,
-        cappa.Arg(short="-p", long=True),
+        cappa.Arg(short="-p", long=True, group=_GROUP_OPTIONS),
         Doc("""Local path in which to clone the public repository."""),
     ]
-    insiders_repo_path: An[
-        Path,
-        cappa.Arg(short="-P", long=True),
-        Doc("""Local path in which to clone the insiders repository."""),
-    ]
+
     insiders_namespace: An[
         str | None,
-        cappa.Arg(short="-N", long=True),
+        cappa.Arg(short="-N", long=True, group=_GROUP_OPTIONS),
         Doc("""Namespace of the insiders repository. Defaults to the public namespace."""),
     ] = None
-    insiders_repo: An[
+
+    insiders_repository: An[
         str | None,
-        cappa.Arg(short="-R", long=True),
+        cappa.Arg(short="-R", long=True, group=_GROUP_OPTIONS),
         Doc("""Name of the insiders repository. Defaults to the public name."""),
     ] = None
+
+    insiders_local_path: An[  # type: ignore[misc]
+        Path,
+        cappa.Arg(short="-P", long=True, group=_GROUP_OPTIONS),
+        Doc("""Local path in which to clone the insiders repository."""),
+    ]
+
     username: An[
         str | None,
-        cappa.Arg(short="-u", long=True),
+        cappa.Arg(short="-u", long=True, group=_GROUP_OPTIONS),
         Doc("""Username. Defaults to the public namespace value."""),
     ] = None
+
     copier_template: An[
         str | None,
-        cappa.Arg(short="-t", long=True),
+        cappa.Arg(short="-t", long=True, group=_GROUP_OPTIONS),
         Doc("""Copier template to initialize the local insiders repository with."""),
     ] = None
+
     register_pypi: An[
         bool,
-        cappa.Arg(short="-i", long=True),
+        cappa.Arg(short="-i", long=True, group=_GROUP_OPTIONS),
         Doc("""Whether to register the project name on PyPI as version 0.0.0."""),
     ] = False
 
     def __call__(self) -> int:
         new_public_and_insiders_github_projects(
             public_namespace=self.namespace,
-            public_name=self.repo,
+            public_name=self.repository,
             description=self.description,
-            public_repo_path=self.repo_path,
-            insiders_repo_path=self.insiders_repo_path,
+            public_repo_path=self.local_path,
             insiders_namespace=self.insiders_namespace,
-            insiders_name=self.insiders_repo,
+            insiders_name=self.insiders_repository,
+            insiders_repo_path=self.insiders_local_path,
             github_username=self.username,
             copier_template=self.copier_template,
         )
         if self.register_pypi:
-            pypi.reserve_pypi(username=self.username or self.namespace, name=self.repo, description=self.description)
+            pypi.reserve_pypi(
+                username=self.username or self.namespace,
+                name=self.repository,
+                description=self.description,
+            )
         return 0
 
 
@@ -207,7 +222,7 @@ class CommandProjectCheck:
     """Command to check GitHub projects."""
 
     def __call__(self) -> int:
-        raise NotImplementedError("Not implemented yet.")
+        raise cappa.Exit("Not implemented yet.", code=1)
 
 
 # ============================================================================ #
@@ -273,17 +288,25 @@ class CommandPyPIRegister:
 
     username: An[
         str,
-        cappa.Arg(short="-u", long=True),
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.pypi_username),
+            show_default=f"{Config.pypi_username}",
+            group=_GROUP_OPTIONS,
+        ),
         Doc("Username on PyPI (your account)."),
     ]
+
     name: An[
         str,
-        cappa.Arg(short="-n", long=True),
+        cappa.Arg(short="-n", long=True, group=_GROUP_OPTIONS),
         Doc("Name to register."),
     ]
+
     description: An[
         str,
-        cappa.Arg(short="-d", long=True),
+        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
         Doc("Description of the project on PyPI."),
     ]
 
@@ -323,16 +346,57 @@ class CommandIndex:
 class CommandIndexList:
     """Command to list the watched repositories."""
 
-    dist_dir: An[
+    sources_directory: An[
         Path,
-        cappa.Arg(short="-d", long=True),
+        cappa.Arg(
+            short="-s",
+            long=True,
+            default=FromConfig(Config.index_sources_directory),
+            show_default=f"{Config.index_sources_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the sources are stored."),
+    ] = defaults.DEFAULT_REPO_DIR
+
+    distributions_directory: An[
+        Path,
+        cappa.Arg(
+            short="-d",
+            long=True,
+            default=FromConfig(Config.index_distributions_directory),
+            show_default=f"{Config.index_distributions_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
         Doc("Directory where the distributions are stored."),
     ] = defaults.DEFAULT_DIST_DIR
 
+    dists: An[
+        bool,
+        cappa.Arg(short="-i", long=True, show_default="True", group=_GROUP_OPTIONS),
+        Doc("List distributions."),
+    ] = False
+
+    projects: An[
+        bool,
+        cappa.Arg(short="-p", long=True, show_default="True", group=_GROUP_OPTIONS),
+        Doc("List projects."),
+    ] = False
+
     def __call__(self) -> int:
-        index = Index(dist_dir=self.dist_dir)
-        for dist in index.list():
-            print(dist)
+        index = Index(git_dir=self.sources_directory, dist_dir=self.distributions_directory)
+        if self.dists is self.projects:
+            print("Distributions:")
+            for dist in sorted(index.list_distributions()):
+                print(dist)
+            print("\nProjects:")
+            for project in sorted(index.list_projects()):
+                print(project)
+        elif self.dists:
+            for dist in sorted(index.list_distributions()):
+                print(dist)
+        elif self.projects:
+            for project in sorted(index.list_projects()):
+                print(project)
         return 0
 
 
@@ -345,35 +409,52 @@ class CommandIndexList:
 class CommandIndexAdd:
     """Command to add a repository to the watched repositories."""
 
-    @staticmethod
-    def _repo_pkg(args: list[str]) -> list[tuple[str, str]]:
-        try:
-            return [tuple(arg.split(":", 1)) for arg in args]  # type: ignore[misc]
-        except ValueError as error:
-            raise argparse.ArgumentTypeError("Repositories must be of the form NAMESPACE/PROJECT:PACKAGE") from error
-
     repositories: An[
-        list[tuple[str, str]],
-        cappa.Arg(required=True, num_args=-1, parse=_repo_pkg),
-        Doc("List of NAMESPACE/PROJECT:PACKAGE repositories."),
+        list[str],
+        cappa.Arg(group=_GROUP_ARGUMENTS),
+        Doc("List of repositories (GitHub namespace/project or Git URL git@host:repo)."),
     ]
 
-    git_dir: An[
+    sources_directory: An[
         Path,
-        cappa.Arg(short="-r", long=True),
-        Doc("Directory where the repositories are cloned."),
+        cappa.Arg(
+            short="-s",
+            long=True,
+            default=FromConfig(Config.index_sources_directory),
+            show_default=f"{Config.index_sources_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the sources are stored."),
     ] = defaults.DEFAULT_REPO_DIR
+
+    distributions_directory: An[
+        Path,
+        cappa.Arg(
+            short="-d",
+            long=True,
+            default=FromConfig(Config.index_distributions_directory),
+            show_default=f"{Config.index_distributions_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the distributions are stored."),
+    ] = defaults.DEFAULT_DIST_DIR
 
     url: An[
         str,
-        cappa.Arg(short="-i", long=True),
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.index_url),
+            show_default=f"{Config.index_url} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
         Doc("URL of the index to upload packages to."),
     ] = defaults.DEFAULT_INDEX_URL
 
     def __call__(self) -> int:
-        index = Index(url=self.url, git_dir=self.git_dir)
-        for namespace, project in self.repositories:
-            index.add(namespace, project)
+        index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
+        for project in self.repositories:
+            index.add(project if project.startswith("git@") else f"git@github.com:{project}")
         return 0
 
 
@@ -384,22 +465,40 @@ class CommandIndexAdd:
 )
 @dataclass(kw_only=True)
 class CommandIndexRemove:
-    """Command to remove a repository from the watched repositories."""
+    """Command to remove a repository and its distributions (if served locally)."""
 
     repositories: An[
         list[str],
-        cappa.Arg(),
+        cappa.Arg(group=_GROUP_ARGUMENTS),
         Doc("List of repository names."),
-    ] = field(default_factory=list)
+    ]
 
-    repo_dir: An[
+    sources_directory: An[
         Path,
-        cappa.Arg(short="-r", long=True),
-        Doc("Directory where the repositories are cloned."),
+        cappa.Arg(
+            short="-s",
+            long=True,
+            default=FromConfig(Config.index_sources_directory),
+            show_default=f"{Config.index_sources_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the sources are stored."),
     ] = defaults.DEFAULT_REPO_DIR
 
+    distributions_directory: An[
+        Path,
+        cappa.Arg(
+            short="-d",
+            long=True,
+            default=FromConfig(Config.index_distributions_directory),
+            show_default=f"{Config.index_distributions_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the distributions are stored."),
+    ] = defaults.DEFAULT_DIST_DIR
+
     def __call__(self) -> int:
-        index = Index(git_dir=self.repo_dir)
+        index = Index(git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         for repo in self.repositories:
             index.remove(repo)
         return 0
@@ -414,27 +513,50 @@ class CommandIndexRemove:
 class CommandIndexUpdate:
     """Command to update watched projects."""
 
-    repo_dir: An[
-        Path,
-        cappa.Arg(short="-r", long=True),
-        Doc("Directory where the repositories are cloned."),
-    ] = defaults.DEFAULT_REPO_DIR
-
-    # TODO: Normalize option across commands.
-    index_url: An[
-        str,
-        cappa.Arg(short="-i", long=True),
-        Doc("URL of the index to upload packages to."),
-    ] = defaults.DEFAULT_INDEX_URL
-
     repositories: An[
         list[str],
-        cappa.Arg(num_args=-1),
+        cappa.Arg(group=_GROUP_ARGUMENTS),
         Doc("List of repository names."),
     ] = field(default_factory=list)
 
+    sources_directory: An[
+        Path,
+        cappa.Arg(
+            short="-s",
+            long=True,
+            default=FromConfig(Config.index_sources_directory),
+            show_default=f"{Config.index_sources_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the sources are stored."),
+    ] = defaults.DEFAULT_REPO_DIR
+
+    distributions_directory: An[
+        Path,
+        cappa.Arg(
+            short="-d",
+            long=True,
+            default=FromConfig(Config.index_distributions_directory),
+            show_default=f"{Config.index_distributions_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the distributions are stored."),
+    ] = defaults.DEFAULT_DIST_DIR
+
+    url: An[
+        str,
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.index_url),
+            show_default=f"{Config.index_url} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("URL of the index to upload packages to."),
+    ] = defaults.DEFAULT_INDEX_URL
+
     def __call__(self) -> int:
-        index = Index(url=self.index_url, git_dir=self.repo_dir)
+        index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         index.update(self.repositories)
         return 0
 
@@ -448,33 +570,69 @@ class CommandIndexUpdate:
 class CommandIndexStart:
     """Command to start the server."""
 
-    url: An[
-        str,
-        cappa.Arg(short=False, long=True),
-        Doc("URL of the index to upload packages to."),
-    ] = defaults.DEFAULT_INDEX_URL
-
-    repo_dir: An[
+    sources_directory: An[
         Path,
-        cappa.Arg(short="-r", long=True),
-        Doc("Directory where the repositories are cloned."),
+        cappa.Arg(
+            short="-s",
+            long=True,
+            default=FromConfig(Config.index_sources_directory),
+            show_default=f"{Config.index_sources_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Directory where the sources are stored."),
     ] = defaults.DEFAULT_REPO_DIR
 
-    dist_dir: An[
+    distributions_directory: An[
         Path,
-        cappa.Arg(short="-d", long=True),
+        cappa.Arg(
+            short="-d",
+            long=True,
+            default=FromConfig(Config.index_distributions_directory),
+            show_default=f"{Config.index_distributions_directory} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
         Doc("Directory where the distributions are stored."),
     ] = defaults.DEFAULT_DIST_DIR
 
+    url: An[
+        str,
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.index_url),
+            show_default=f"{Config.index_url} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("URL to serve the index at."),
+    ] = defaults.DEFAULT_INDEX_URL
+
     background: An[
         bool,
-        cappa.Arg(short="-b", long=True),
+        cappa.Arg(
+            short="-b",
+            long=True,
+            default=FromConfig(Config.index_start_in_background),
+            show_default=f"{Config.index_start_in_background} or {{default}}",
+            group=_GROUP_OPTIONS,
+        ),
         Doc("Run the server in the background."),
     ] = False
 
+    log_path: An[
+        str | None,
+        cappa.Arg(
+            short="-l",
+            long=True,
+            default=FromConfig(Config.index_log_path),
+            show_default=f"{Config.index_log_path} or standard error",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Where to write index server logs."),
+    ] = None
+
     def __call__(self) -> int:
-        index = Index(url=self.url, dist_dir=self.dist_dir)
-        index.start(background=self.background)
+        index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
+        index.start(background=self.background, log_path=self.log_path)
         return 0
 
 
@@ -524,86 +682,23 @@ class CommandIndexLogs:
         try:
             print(index.logs())
         except FileNotFoundError as error:
-            print(error, file=sys.stderr)
-            return 1
+            config = CommandMain._load_config()
+            if isinstance(config.index_log_path, Unset):
+                print(error, file=sys.stderr)
+                return 1
+            print(config.index_log_path)
         return 0
 
 
 # ============================================================================ #
 # Teams                                                                        #
 # ============================================================================ #
-@cappa.command(
-    name="sync",
-    help="Synchronize members of a team with current sponsors.",
-    description=cleandoc(
-        """
-        Fetch current sponsors from GitHub,
-        then grant or revoke access to a GitHub team
-        for eligible sponsors.
-        """,
-    ),
-)
+@cappa.command(name="team", help="Manage GitHub teams.")
 @dataclass(kw_only=True)
-class CommandTeamSync:
-    """Command to sync team memberships with current sponsors."""
+class CommandTeam:
+    """Command to manage GitHub teams."""
 
-    team: An[
-        str,
-        cappa.Arg(num_args=1),
-        Doc("The GitHub team to sync sponsors with."),
-    ]
-    github_sponsored_account: An[
-        str,
-        cappa.Arg(short=False, long=True),
-        Doc("""The sponsored account on GitHub Sponsors."""),
-    ]
-    polar_sponsored_account: An[
-        str,
-        cappa.Arg(short=False, long=True),
-        Doc("""The sponsored account on Polar."""),
-    ]
-    min_amount: An[
-        int,
-        cappa.Arg(short=False, long=True),
-        Doc("""Minimum amount to be considered an Insider."""),
-    ]
-    github_team: An[
-        str,
-        cappa.Arg(short=False, long=True),
-        Doc("""The GitHub team to sync."""),
-    ]
-    github_include_users: An[
-        list[str],
-        cappa.Arg(short=False, long=True, default=FromConfig("github_include_users", "github.include-users")),
-        Doc("""Users that should always be in the team."""),
-    ]
-    github_exclude_users: An[
-        list[str],
-        cappa.Arg(short=False, long=True, default=FromConfig("github_exclude_users", "github.exclude-users")),
-        Doc("""Users that should never be in the team."""),
-    ]
-    github_organization_members: An[
-        dict[str, list[str]],
-        cappa.Arg(short=False, long=True),
-        Doc("""A mapping of users belonging to sponsoring organizations."""),
-    ]
-    github_token: An[
-        str,
-        cappa.Arg(short=False, long=True, default=cappa.Env("GITHUB_TOKEN")),
-        Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`."""),
-    ]
-
-    def __call__(self) -> int:
-        # TODO: Gather sponsors from configured platforms.
-        with GitHub(self.github_token) as github:
-            github.sync_team(
-                self.team,
-                min_amount=self.min_amount,
-                include_users=set(self.github_include_users),
-                exclude_users=set(self.github_exclude_users),
-                org_users=self.github_organization_members,  # type: ignore[arg-type]
-            )
-        return 0
+    subcommand: An[cappa.Subcommands[CommandTeamList | CommandTeamSync], Doc("The selected subcommand.")]
 
 
 @cappa.command(
@@ -620,15 +715,144 @@ class CommandTeamList:
     """Command to list team memberships."""
 
     def __call__(self) -> int:
-        raise NotImplementedError("Not implemented yet.")
+        raise cappa.Exit("Not implemented yet.", code=1)
 
 
-@cappa.command(name="team", help="Manage GitHub teams.")
+@cappa.command(
+    name="sync",
+    help="Synchronize members of a team with current sponsors.",
+    description=cleandoc(
+        """
+        Fetch current sponsors from GitHub,
+        then grant or revoke access to a GitHub team
+        for eligible sponsors.
+        """,
+    ),
+)
 @dataclass(kw_only=True)
-class CommandTeam:
-    """Command to manage GitHub teams."""
+class CommandTeamSync:
+    """Command to sync team memberships with current sponsors."""
 
-    subcommand: An[cappa.Subcommands[CommandTeamList | CommandTeamSync], Doc("The selected subcommand.")]
+    github_insiders_team: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=False,
+            num_args=1,
+            default=FromConfig(Config.github_insiders_team),
+            show_default=f"{Config.github_insiders_team}",
+            group=_GROUP_ARGUMENTS,
+        ),
+        Doc("""The GitHub team to sync."""),
+    ]
+
+    github_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ghsa", "--github-sponsored-account"),
+            default=FromConfig(Config.github_sponsored_account),
+            show_default=f"{Config.github_sponsored_account} or none",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""The sponsored account on GitHub Sponsors."""),
+    ] = ""
+
+    github_include_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--ghiu", "--github-include-users"),
+            default=FromConfig(Config.github_include_users),
+            show_default=f"{Config.github_include_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should always be in the team."""),
+    ] = field(default_factory=list)
+
+    github_exclude_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--gheu", "--github-exclude-users"),
+            default=FromConfig(Config.github_exclude_users),
+            show_default=f"{Config.github_exclude_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should never be in the team."""),
+    ] = field(default_factory=list)
+
+    github_organization_members: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--ghom", "--github-organization-members"),
+            default=FromConfig(Config.github_organization_members),
+            show_default=f"{Config.github_organization_members}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A mapping of users belonging to sponsoring organizations."""),
+    ] = field(default_factory=dict)
+
+    github_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ght", "--github-token"),
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.github_token),
+            show_default="`GITHUB_TOKEN` env-var or `github.token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`."""),
+    ] = ""
+
+    polar_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plsa", "--polar-sponsored-account"),
+            default=FromConfig(Config.polar_sponsored_account),
+            show_default=f"{Config.polar_sponsored_account} or none",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""The sponsored account on Polar."""),
+    ] = ""
+
+    polar_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plt", "--polar-token"),
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.polar_token),
+            show_default="`POLAR_TOKEN` env-var or `polar.token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
+    ] = ""
+
+    minimum_amount: An[
+        int,
+        cappa.Arg(
+            short=True,
+            long=True,
+            default=FromConfig(Config.sponsors_minimum_amount),
+            show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Minimum amount to be considered an Insider."""),
+    ] = 0
+
+    def __call__(self) -> int:
+        # TODO: Gather sponsors from configured platforms.
+        with GitHub(self.github_token) as github:
+            github.sync_team(
+                self.github_insiders_team,
+                min_amount=self.minimum_amount,
+                include_users=set(self.github_include_users),
+                exclude_users=set(self.github_exclude_users),
+                org_users=self.github_organization_members,  # type: ignore[arg-type]
+            )
+        return 0
 
 
 # ============================================================================ #
@@ -647,78 +871,100 @@ class CommandTeam:
 class CommandBacklog:
     """Command to list the backlog of issues."""
 
-    github_namespaces: An[
+    @staticmethod
+    def _parse_sort(arg: str) -> list[Callable]:
+        return Config._eval_sort(arg.split(",")) or []
+
+    backlog_namespaces: An[
         list[str],
         cappa.Arg(
-            long=True,
-            num_args=-1,
-            default=cappa.Env("BACKLOG_NAMESPACES") | FromConfig("backlog_namespaces", "backlog.namespaces"),
+            short=False,
+            long=False,
+            default=cappa.Env("BACKLOG_NAMESPACES") | FromConfig(Config.backlog_namespaces),
+            show_default=f"`BACKLOG_NAMESPACES` env-var or {Config.backlog_namespaces}",
+            group=_GROUP_ARGUMENTS,
         ),
         Doc("Namespaces to fetch issues from."),
     ]
 
-    github_token: An[
-        str,
+    issue_labels: An[
+        dict[str, str],
         cappa.Arg(
-            short=False,
+            short=True,
             long=True,
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig("github_token", "github.token-command"),
+            default=FromConfig(Config.backlog_issue_labels),
+            show_default=f"{Config.backlog_issue_labels}",
+            group=_GROUP_OPTIONS,
         ),
-        Doc("""A GitHub token. Recommended scopes: `read:user`."""),
-    ]
+        Doc("Issue labels to keep in issues metadata, and how they are represented."),
+    ] = field(default_factory=dict)
+
+    limit: An[
+        int,
+        cappa.Arg(
+            short=True,
+            long=True,
+            default=FromConfig(Config.backlog_limit),
+            show_default=f"{Config.backlog_limit} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Limit the number of issues to display."),
+    ] = 0
+
+    sort: An[
+        list[Callable],
+        cappa.Arg(
+            short=True,
+            long=True,
+            parse=_parse_sort,
+            default=FromConfig(Config.backlog_sort),
+            show_default=f"{Config.backlog_sort}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Sort strategy."),
+    ] = field(default_factory=list)
+
+    public: An[
+        bool,
+        cappa.Arg(short=False, long=True, show_default=False, group=_GROUP_OPTIONS),
+        Doc("Only use public sponsorships."),
+    ] = False
 
     polar_token: An[
         str,
         cappa.Arg(
             short=False,
-            long=True,
-            default=cappa.Env("POLAR_TOKEN") | FromConfig("polar_token", "polar.token-command"),
+            long=("--plt", "--polar-token"),
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.polar_token),
+            show_default="`POLAR_TOKEN` env-var or `polar.token-command` config-value",
+            group=_GROUP_OPTIONS,
         ),
         Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
-    ]
+    ] = ""
+
+    github_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ght", "--github-token"),
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.github_token),
+            show_default="`GITHUB_TOKEN` env-var or `github.token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A GitHub token. Recommended scopes: `read:user`."""),
+    ] = ""
 
     github_organization_members: An[
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=True,
-            default=FromConfig("github_organization_members", "github.organization-members"),
+            long=("--ghom", "--github-organization-members"),
+            default=FromConfig(Config.github_organization_members),
+            show_default=f"{Config.github_organization_members}",
+            group=_GROUP_OPTIONS,
         ),
         Doc("""A mapping of users belonging to sponsoring organizations."""),
     ] = field(default_factory=dict)
-
-    @staticmethod
-    def _parse_sort(arg: str) -> list[Callable]:
-        return Config._eval_sort(arg.split(",")) or []
-
-    sort: An[
-        list[Callable],
-        cappa.Arg(
-            short="-s",
-            long=True,
-            parse=_parse_sort,
-            default=FromConfig("backlog_sort", "backlog.sort"),
-        ),
-        Doc("Sort strategy."),
-    ] = field(default_factory=list)
-
-    issue_labels: An[
-        dict[str, str],
-        cappa.Arg(short=False, long=True, default=FromConfig("backlog_issue_labels", "backlog.issue-labels")),
-        Doc("Issue labels to keep in issues metadata, and how they are represented."),
-    ] = field(default_factory=dict)
-
-    public: An[
-        bool,
-        cappa.Arg(short=False, long=True),
-        Doc("Only use public sponsorships."),
-    ] = False
-
-    limit: An[
-        int,
-        cappa.Arg(short=False, long=True, default=FromConfig("backlog_limit", "backlog.limit")),
-        Doc("Limit the number of issues to display."),
-    ] = 0
 
     def __call__(self) -> int:
         github_context = GitHub(self.github_token)
@@ -729,9 +975,9 @@ class CommandBacklog:
             if polar:
                 status.update("Fetching sponsors from Polar")
                 sponsors.merge(polar.get_sponsors(exclude_private=self.public))
-            status.update("Fetching issues from GitHub")
+            status.update(f"Fetching issues from GitHub{' and Polar' if isinstance(polar, Polar) else ''}")
             backlog = get_backlog(
-                self.github_namespaces,
+                self.backlog_namespaces,
                 github=github,
                 polar=polar,
                 sponsors=sponsors,
@@ -793,7 +1039,7 @@ class CommandMain:
 
     @staticmethod
     def _configure_logging(command: CommandMain) -> None:
-        configure_logging(command.log_level, command.log_path, allow="pypiserver")
+        configure_logging(command.log_level, command.log_path)
 
     version: An[
         bool,
@@ -802,13 +1048,14 @@ class CommandMain:
             long=True,
             action=_print_and_exit(debug.get_version),
             num_args=0,
+            group=_GROUP_OPTIONS,
         ),
         Doc("Print the program version and exit."),
     ] = False
 
     debug_info: An[
         bool,
-        cappa.Arg(long=True, action=_print_and_exit(debug.print_debug_info), num_args=0),
+        cappa.Arg(long=True, action=_print_and_exit(debug.print_debug_info), num_args=0, group=_GROUP_OPTIONS),
         Doc("Print debug information."),
     ] = False
 
@@ -818,21 +1065,29 @@ class CommandMain:
             short="-c",
             long=True,
             parse=_load_config,
-            group=_GROUP_GLOBAL,
             propagate=True,
+            show_default=f"`{defaults.DEFAULT_CONF_PATH}`",
+            group=_GROUP_GLOBAL_OPTIONS,
         ),
         Doc("Path to the configuration file."),
     ] = field(default_factory=Config.from_default_location)
 
     log_level: An[
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
-        cappa.Arg(short="-L", long=True, parse=str.upper, group=_GROUP_GLOBAL, propagate=True),
+        cappa.Arg(
+            short="-L",
+            long=True,
+            parse=str.upper,
+            propagate=True,
+            show_default=True,
+            group=_GROUP_GLOBAL_OPTIONS,
+        ),
         Doc("Log level to use when logging messages."),
     ] = "INFO"
 
     log_path: An[
         str | None,
-        cappa.Arg(short="-P", long=True, group=_GROUP_GLOBAL, propagate=True),
+        cappa.Arg(short="-P", long=True, propagate=True, show_default="standard error", group=_GROUP_GLOBAL_OPTIONS),
         Doc("Write log messages to this file path."),
     ] = None
 
@@ -849,17 +1104,17 @@ def main(
         long=True,
         action=cappa.ArgAction.completion,
         choices=["complete", "generate"],
-        group=_GROUP_GLOBAL,
+        group=_GROUP_GLOBAL_OPTIONS,
         help="Print shell-specific completion source.",
     )
     help_option: cappa.Arg = cappa.Arg(
         short="-h",
         long=True,
         action=cappa.ArgAction.help,
-        group=_GROUP_GLOBAL,
+        group=_GROUP_GLOBAL_OPTIONS,
         help="Print the program help and exit.",
     )
-    help_formatter = cappa.HelpFormatter(default_format="Default: `{default}`.")
+    help_formatter = cappa.HelpFormatter(default_format="Default: {default}.")
 
     try:
         return cappa.invoke(
@@ -873,7 +1128,3 @@ def main(
         )
     except cappa.Exit as exit:
         return int(exit.code or 0)
-
-
-if __name__ == "__main__":
-    sys.exit(main(["backlog", "list"]))
