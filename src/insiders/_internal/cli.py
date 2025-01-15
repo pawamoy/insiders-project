@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import sys
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -84,9 +85,10 @@ class CommandProject:
         - Create public and insiders repositories on GitHub
             (using the provided namespace, username, repository name, description, etc.).
         - Clone these two repositories locally (using the provided repository paths).
-        - Initialize the public repository with a `README` and a dummy CI job that always passes.
-        - Optionally initialize the insiders repository by generating initial contents
-            using the specified [Copier](https://copier.readthedocs.io/en/stable/) template.
+        - Optionally initialize the public repository by generating initial contents
+            using the specified [Copier](https://copier.readthedocs.io/en/stable/) template and answers.
+        - Optionally run a post creation command into the public repository.
+        - Pull the public contents into the insiders clone (by declaring an `upstream` remote).
 
         *Example 1 - Project in user's namespace*
 
@@ -98,9 +100,9 @@ class CommandProject:
             -n pawamoy \\
             -r mkdocs-ultimate \\
             -d "The ultimate plugin for MkDocs (??)" \\
-            -p ~/data/dev/mkdocs-ultimate \\
-            -P ~/data/dev/insiders/mkdocs-ultimate \\
-            -t gh:pawamoy/copier-pdm
+            -o ~/data/dev \\
+            -O ~/data/dev/insiders \\
+            -t gh:pawamoy/copier-uv
         ```
 
         *Example 2 - Project in another namespace:*
@@ -113,8 +115,8 @@ class CommandProject:
             -n mkdocstrings \\
             -r rust \\
             -d "A Rust handler for mkdocstrings" \\
-            -p ~/data/dev/mkdocstrings-rust \\
-            -P ~/data/dev/insiders/mkdocstrings-rust \\
+            -o ~/data/dev \\
+            -O ~/data/dev/insiders \\
             -N pawamoy-insiders \\
             -R mkdocstrings-rust \\
             -u pawamoy \\
@@ -126,12 +128,6 @@ class CommandProject:
 @dataclass(kw_only=True)
 class CommandProjectCreate:
     """Command to create public/insiders repositories."""
-
-    namespace: An[
-        str,
-        cappa.Arg(short="-n", long=True, group=_GROUP_OPTIONS),
-        Doc("""Namespace of the public repository."""),
-    ]
 
     repository: An[
         str,
@@ -145,63 +141,160 @@ class CommandProjectCreate:
         Doc("""Shared description."""),
     ]
 
-    local_path: An[
-        Path,
-        cappa.Arg(short="-p", long=True, group=_GROUP_OPTIONS),
-        Doc("""Local path in which to clone the public repository."""),
+    namespace: An[
+        str,
+        cappa.Arg(
+            short="-n",
+            long=True,
+            default=FromConfig(Config.github_project_namespace),
+            show_default=f"{Config.github_project_namespace}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Namespace of the public repository."""),
     ]
 
-    insiders_namespace: An[
-        str | None,
-        cappa.Arg(short="-N", long=True, group=_GROUP_OPTIONS),
-        Doc("""Namespace of the insiders repository. Defaults to the public namespace."""),
-    ] = None
+    project_directory: An[
+        Path,
+        cappa.Arg(
+            short="-o",
+            long=True,
+            default=FromConfig(Config.project_directory),
+            show_default=f"{Config.project_directory}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Directory in which to clone the public repository."""),
+    ]
 
     insiders_repository: An[
         str | None,
-        cappa.Arg(short="-R", long=True, group=_GROUP_OPTIONS),
-        Doc("""Name of the insiders repository. Defaults to the public name."""),
+        cappa.Arg(short="-R", long=True, show_default="public name", group=_GROUP_OPTIONS),
+        Doc("""Name of the insiders repository."""),
     ] = None
 
-    insiders_local_path: An[  # type: ignore[misc]
+    insiders_namespace: An[
+        str | None,
+        cappa.Arg(
+            short="-N",
+            long=True,
+            default=FromConfig(Config.github_insiders_project_namespace),
+            show_default=f"{Config.github_insiders_project_namespace} or public namespace",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Namespace of the insiders repository."""),
+    ] = None
+
+    insiders_project_directory: An[  # type: ignore[misc]
         Path,
-        cappa.Arg(short="-P", long=True, group=_GROUP_OPTIONS),
-        Doc("""Local path in which to clone the insiders repository."""),
+        cappa.Arg(
+            short="-O",
+            long=True,
+            default=FromConfig(Config.project_insiders_directory),
+            show_default=f"{Config.project_insiders_directory}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Directory in which to clone the insiders repository."""),
     ]
 
-    username: An[
+    github_username: An[
         str | None,
-        cappa.Arg(short="-u", long=True, group=_GROUP_OPTIONS),
-        Doc("""Username. Defaults to the public namespace value."""),
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.github_username),
+            show_default=f"{Config.github_username} or public namespace",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""GitHub username."""),
     ] = None
 
     copier_template: An[
         str | None,
-        cappa.Arg(short="-t", long=True, group=_GROUP_OPTIONS),
-        Doc("""Copier template to initialize the local insiders repository with."""),
+        cappa.Arg(
+            short="-t",
+            long=True,
+            default=FromConfig(Config.project_copier_template),
+            show_default=f"{Config.project_copier_template}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Copier template to generate new projects with."""),
     ] = None
 
-    register_pypi: An[
+    @staticmethod
+    def _parse_dict(arg: str) -> dict[str, str]:
+        return dict(pair.split("=", 1) for pair in arg.split(","))
+
+    copier_template_answers: An[
+        dict[str, str] | None,
+        cappa.Arg(
+            short="-a",
+            long=True,
+            parse=_parse_dict,
+            default=FromConfig(Config.project_copier_template_answers),
+            show_default=f"{Config.project_copier_template_answers}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Copier template answers to use when generating a project."""),
+    ] = None
+
+    post_creation_command: An[
+        list[str] | None,
+        cappa.Arg(
+            short="-x",
+            long=True,
+            num_args=1,
+            parse=shlex.split,
+            default=FromConfig(Config.project_post_creation_command),
+            show_default=f"{Config.project_post_creation_command}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Command to run after creating the public repository."""),
+    ] = None
+
+    register_on_pypi: An[
         bool,
-        cappa.Arg(short="-i", long=True, group=_GROUP_OPTIONS),
-        Doc("""Whether to register the project name on PyPI as version 0.0.0."""),
+        cappa.Arg(
+            short="-i",
+            long=True,
+            default=FromConfig(Config.project_register_on_pypi),
+            show_default=f"{Config.project_register_on_pypi}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Whether to register the project on PyPI after creating it."""),
     ] = False
+
+    pypi_username: An[
+        str | None,
+        cappa.Arg(
+            short="-y",
+            long=True,
+            default=FromConfig(Config.pypi_username),
+            show_default=f"{Config.pypi_username}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""PyPI username to register the project with."""),
+    ] = None
 
     def __call__(self) -> int:
         new_public_and_insiders_github_projects(
             public_namespace=self.namespace,
             public_name=self.repository,
             description=self.description,
-            public_repo_path=self.local_path,
+            # We use the Insiders name here as it will generally be more independant of the namespace
+            # (for example `mkdocstrings-python` instead of just `python`).
+            public_repo_path=self.project_directory / (self.insiders_repository or self.repository),
             insiders_namespace=self.insiders_namespace,
             insiders_name=self.insiders_repository,
-            insiders_repo_path=self.insiders_local_path,
-            github_username=self.username,
+            insiders_repo_path=self.insiders_project_directory / (self.insiders_repository or self.repository),
+            github_username=self.github_username,
             copier_template=self.copier_template,
+            copier_template_answers=self.copier_template_answers,
+            post_creation_command=self.post_creation_command,
         )
-        if self.register_pypi:
+        if self.register_on_pypi:
+            if not self.pypi_username:
+                raise cappa.Exit("PyPI username must be provided to register the project on PyPI.", code=1)
             pypi.reserve_pypi(
-                username=self.username or self.namespace,
+                username=self.pypi_username,
                 name=self.repository,
                 description=self.description,
             )
@@ -839,7 +932,7 @@ class CommandTeamSync:
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""Minimum amount to be considered an Insider."""),
+        Doc("""Minimum amount to be considered an insider."""),
     ] = 0
 
     def __call__(self) -> int:
