@@ -76,7 +76,7 @@ class GitCache:
         """
         return self.cache_dir.joinpath(repo).exists()
 
-    def clone(self, name: str, url: str) -> Path:
+    def clone(self, repo: str, url: str) -> Path:
         """Clone a repository.
 
         Parameters:
@@ -85,7 +85,8 @@ class GitCache:
         Returns:
             The path to the cloned repository.
         """
-        cached_repo = self.cache_dir / name
+        logger.debug(f"{repo}: Cloning {url}")
+        cached_repo = self.cache_dir / repo
         cached_repo.parent.mkdir(exist_ok=True)
         run("git", "clone", url, cached_repo)
         return cached_repo
@@ -96,6 +97,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
+        logger.debug(f"{repo}: Checking out {ref}")
         self._git(repo, "checkout", ref)
 
     def checkout_origin_head(self, repo: str) -> None:
@@ -104,6 +106,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
+        logger.debug(f"{repo}: Checking out origin's HEAD")
         self._git(repo, "remote", "set-head", "origin", "--auto")
         ref = self._git(repo, "symbolic-ref", "refs/remotes/origin/HEAD")
         self.checkout(repo, ref.strip().split("/")[3])
@@ -114,6 +117,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
+        logger.debug(f"{repo}: Pulling latest changes")
         self._git(repo, "pull")
 
     def dist_name(self, repo: str) -> str:
@@ -196,22 +200,29 @@ class Index:
         self._git_cache = GitCache(self.git_dir)
         self._finder = PackageFinder(index_urls=[f"{self.url}/simple"])
 
-    def add(self, git_url: str, name: str | None = None) -> None:
-        name = name or git_url.split("/")[-1].replace(".git", "")
+    def add(self, git_url: str, repo: str | None = None) -> None:
+        repo = repo or git_url.split("/")[-1].replace(".git", "")
         cache = self._git_cache
-        if not cache.exists(name):
-            cache.clone(name, git_url)
-            cache.checkout(name, cache.latest_tag(name))
-            self.upload(cache.build(name))
+        if not cache.exists(repo):
+            cache.clone(repo, git_url)
+            cache.checkout(repo, cache.latest_tag(repo))
+            self.upload(cache.build(repo))
 
-    def remove(self, name: str) -> None:
-        dist_name = self._git_cache.dist_name(name)
-        self._git_cache.remove(name)
+    def remove(self, repo: str) -> None:
+        try:
+            dist_name = self._git_cache.dist_name(repo).replace("-", "_")
+        except FileNotFoundError:
+            logger.warning(f"{repo}: Repository not found, skipping")
+            return
+        self._git_cache.remove(repo)
         for dist in self.dist_dir.glob(f"{dist_name}-*"):
             dist.unlink()
 
-    def list(self) -> Iterator[Path]:
+    def list_distributions(self) -> Iterator[Path]:
         yield from self.dist_dir.iterdir()
+
+    def list_projects(self) -> Iterator[Path]:
+        yield from self._git_cache.cache_dir.iterdir()
 
     def update(self, projects: Iterable[str] | None = None) -> None:
         """Update PyPI packages.
@@ -221,7 +232,7 @@ class Index:
         build and upload distributions.
         """
         cache = self._git_cache
-        projects = projects or cache.list()
+        projects = projects or sorted(cache.list())
         for name in projects:
             if not cache.exists(name):
                 logger.warning(f"{name}: Repository not found, skipping")
@@ -258,21 +269,21 @@ class Index:
                 self.upload(new_dists)
                 logger.success(f"{name}: Built and published version {normal_tag}")
 
-    def start(self, *, background: bool = False) -> None:
+    def start(self, *, background: bool = False, log_path: str | None = None) -> None:
         """Start the server."""
         if background and os.fork():
             return
-        with redirect_output_to_logging():
-            serve(
-                [
-                    "run",
-                    str(self.dist_dir),
-                    f"-p{self.port}",
-                    "-a.",
-                    "-P.",
-                    "-vv",
-                ],
-            )
+        args = [
+            "run",
+            str(self.dist_dir),
+            f"-p{self.port}",
+            "-a.",
+            "-P.",
+            "--log-stream=none",
+        ]
+        if log_path:
+            args.extend(("--log-file", log_path))
+        serve(args)
 
     def stop(self) -> An[bool, Doc("Whether the server was stopped or not.")]:
         """Stop the server."""
@@ -301,10 +312,14 @@ class Index:
         """Return the logs file path."""
         if not (status := self.status()):
             raise FileNotFoundError("Server not running")
-        for index, arg in enumerate(status["cmdline"][1:]):
-            if arg.startswith("-P"):
+        for index, arg in enumerate(status["cmdline"][1:], 1):
+            if arg.startswith("-p"):
                 if len(arg) > 2:  # noqa: PLR2004
                     return arg[2:]
+                return status["cmdline"][index + 1]
+            if arg.startswith("--server-log-path"):
+                if len(arg) > 18:  # noqa: PLR2004
+                    return arg[18:]
                 return status["cmdline"][index + 1]
         raise FileNotFoundError("Logs file not found")
 
