@@ -73,8 +73,8 @@ def reserve_pypi(
                 builder = ProjectBuilder.from_isolated_env(env, repo)
                 env.install(builder.build_system_requires)
                 with Capture.BOTH.here() as captured:
-                    env.install(builder.get_requires_for_build(distribution))  # type: ignore[arg-type]
-                    builder.build(distribution, str(dist))  # type: ignore[arg-type]
+                    env.install(builder.get_requires_for_build(distribution))
+                    builder.build(distribution, str(dist))
                 log_captured(str(captured), level="debug", pkg="build")
 
         logger.info("Uploading distributions")
