@@ -141,7 +141,7 @@ def _update_record(record: Record) -> None:
 
 
 class _InterceptHandler(logging.Handler):
-    def __init__(self, level: int = 0, allow: str | tuple[str] | None = None) -> None:
+    def __init__(self, level: int = 0, allow: tuple[str, ...] = ()) -> None:
         super().__init__(level)
         self.allow = allow
 
@@ -153,7 +153,7 @@ class _InterceptHandler(logging.Handler):
             level = record.levelno
 
         # Prevent too much noise from dependencies
-        if self.allow and level == "INFO" and not record.name.startswith(self.allow):
+        if level == "INFO" and not record.name.startswith(self.allow):
             level = "DEBUG"
 
         # Find caller from where originated the logged message.
@@ -162,15 +162,19 @@ class _InterceptHandler(logging.Handler):
             frame = frame.f_back  # type: ignore[assignment]
             depth += 1
 
+        # Log the message, replacing new lines with spaces.
         message = record.getMessage().replace("\n", " ")
         logger.opt(depth=depth, exception=record.exc_info).log(level, message)
+
+
+intercept_handler = _InterceptHandler()
 
 
 def configure_logging(
     level: Annotated[str, Doc("Log level (name).")],
     path: Annotated[str | Path | None, Doc("Log file path.")] = None,
     allow: Annotated[
-        str | tuple[str] | None,
+        tuple[str, ...],
         Doc(
             """
             List of package names for which to allow log levels greater or equal to INFO level.
@@ -178,7 +182,7 @@ def configure_logging(
             If unspecified, allow everything.
             """,
         ),
-    ] = None,
+    ] = (),
 ) -> None:
     """Configure logging."""
     sink = path or sys.stderr
@@ -191,12 +195,14 @@ def configure_logging(
         "ERROR": logging.ERROR,  # 40
         "CRITICAL": logging.CRITICAL,  # 50
     }.get(level.upper(), logging.INFO)
-    logging.basicConfig(handlers=[_InterceptHandler(allow=allow)], level=0, force=True)
+    intercept_handler.allow = allow
+    logging.basicConfig(handlers=[intercept_handler], level=0, force=True)
     loguru_format = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
         "<level>{level: <8}</level> | <cyan>{pkg}</cyan> - <level>{message}</level>"
     )
-    logger.configure(handlers=[{"sink": sink, "level": log_level, "format": loguru_format}])
+    handler = {"sink": sink, "level": log_level, "format": loguru_format}
+    logger.configure(handlers=[handler])  # type: ignore[list-item]
 
 
 logger = logger.patch(_update_record)
