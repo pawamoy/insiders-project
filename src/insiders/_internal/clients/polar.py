@@ -136,7 +136,7 @@ class Polar(Client):
                 known_users[account_id] = User(name=account_id, platform="github")
             account = known_users[account_id]
 
-            repository_name = f'{item["repository"]["organization"]["name"]}/{item["repository"]["name"]}'
+            repository_name = f"{item['repository']['organization']['name']}/{item['repository']['name']}"
             iid = (repository_name, item["number"])
             issues[iid] = Issue(
                 repository=repository_name,
