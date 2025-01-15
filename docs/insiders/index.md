@@ -61,7 +61,7 @@ data_source = "docs/insiders/goals.yml"
 
 <!-- blacken-docs:off -->
 ```python exec="1" session="insiders" idprefix=""
---8<-- "scripts/insiders.py"
+--8<-- "scripts/gen_insiders.py"
 
 if unreleased_features:
     print(
