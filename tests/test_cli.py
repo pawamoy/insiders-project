@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import pytest
+from typing import TYPE_CHECKING
 
 from insiders._internal import cli, debug
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_main() -> None:
     """Basic CLI test."""
-    with pytest.raises(SystemExit):
-        cli.main([])
+    assert cli.main([]) == 2
 
 
 def test_show_help(capsys: pytest.CaptureFixture) -> None:
@@ -19,8 +21,7 @@ def test_show_help(capsys: pytest.CaptureFixture) -> None:
     Parameters:
         capsys: Pytest fixture to capture output.
     """
-    with pytest.raises(SystemExit):
-        cli.main(["-h"])
+    assert cli.main(["-h"]) == 0
     captured = capsys.readouterr()
     assert "insiders" in captured.out
 
@@ -31,8 +32,7 @@ def test_show_version(capsys: pytest.CaptureFixture) -> None:
     Parameters:
         capsys: Pytest fixture to capture output.
     """
-    with pytest.raises(SystemExit):
-        cli.main(["-V"])
+    assert cli.main(["-V"]) == 0
     captured = capsys.readouterr()
     assert debug.get_version() in captured.out
 
@@ -43,8 +43,7 @@ def test_show_debug_info(capsys: pytest.CaptureFixture) -> None:
     Parameters:
         capsys: Pytest fixture to capture output.
     """
-    with pytest.raises(SystemExit):
-        cli.main(["--debug-info"])
+    assert cli.main(["--debug-info"]) == 0
     captured = capsys.readouterr().out.lower()
     assert "python" in captured
     assert "system" in captured
