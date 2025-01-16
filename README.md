@@ -19,3 +19,15 @@ With [`uv`](https://docs.astral.sh/uv/):
 ```bash
 uv tool install insiders
 ```
+
+## Usage
+
+The `insiders` tool provides several commands that will help you manage projects based on a sponsorware strategy.
+
+- `insiders backlog`: Print a backlog of issues, ordered using your own defined criteria
+- `insiders index`: Serve a PyPI-like index locally, and upload private Insiders packages to it.
+- `insiders project`: Bootstrap public/insiders project pairs on GitHub.
+- `insiders pypi`: Register names on PyPI.
+- `insiders team`: Grant/revoke access to a private GitHub organization team to/from your sponsors.
+
+More documentation will be added later, for now ask @pawamoy for details (see where I can be reached on my profile) 🙂
