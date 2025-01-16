@@ -11,6 +11,11 @@ from typing_extensions import Doc
 
 from insiders._internal.logger import logger
 
+# TODO: Handle more operations:
+# - Create matching Insiders project from public one.
+# - Create matching public project from Insiders one.
+# - What else? Get user feedback.
+
 _gh_repo_create = partial(run_and_log, "gh", "repo", "create")
 
 
