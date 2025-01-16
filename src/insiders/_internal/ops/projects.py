@@ -38,14 +38,14 @@ def new_public_and_insiders_github_projects(
     github_username = github_username or public_namespace
     insiders_namespace = insiders_namespace or f"{github_username}-insiders"
     insiders_name = insiders_name or public_name
-    public_description = f"{description} Available to sponsors only."
+    github_description = f"{description} Available to sponsors only."
 
     logger.debug("Creating new project with these settings:")
     logger.debug(f"- public repo:   {public_namespace}/{public_name} cloned in {public_repo_path}")
     logger.debug(f"- insiders repo: {insiders_namespace}/{insiders_name} cloned in {insiders_repo_path}")
 
     common_opts = ("--disable-wiki", "--homepage", f"https://{public_namespace}.github.io/{public_name}")
-    public_opts = ("--description", public_description, "--public", *common_opts)
+    public_opts = ("--description", github_description, "--public", *common_opts)
     insiders_opts = ("--description", description, "--private", "--disable-issues", *common_opts)
     _gh_repo_create(f"{public_namespace}/{public_name}", *public_opts)
     _gh_repo_create(f"{insiders_namespace}/{insiders_name}", *insiders_opts)
@@ -54,10 +54,21 @@ def new_public_and_insiders_github_projects(
     run_and_log("git", "clone", f"git@github.com:{public_namespace}/{public_name}", repo_path)
 
     if copier_template:
+        context = {
+            "public_name": public_name,
+            "public_namespace": public_namespace,
+            "insiders_name": insiders_name,
+            "insiders_namespace": insiders_namespace,
+            "description": description,
+        }
+        formatted_answers = {
+            key: value.format(**context) if isinstance(value, str) else value
+            for key, value in (copier_template_answers or {}).items()
+        }
         copier_run(
             copier_template,
             repo_path,
-            user_defaults=copier_template_answers or {},
+            user_defaults=formatted_answers,
             overwrite=True,
             unsafe=True,
         )
