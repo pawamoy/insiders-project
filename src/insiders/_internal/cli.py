@@ -1163,7 +1163,7 @@ class CommandMain:
             group=_GROUP_GLOBAL_OPTIONS,
         ),
         Doc("Path to the configuration file."),
-    ] = field(default_factory=Config.from_default_location)
+    ] = field(default_factory=_load_config)
 
     log_level: An[
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
