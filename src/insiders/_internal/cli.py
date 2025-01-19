@@ -936,6 +936,12 @@ class CommandTeamSync:
         Doc("""Minimum amount to be considered an insider."""),
     ] = 0
 
+    dry_run: An[
+        bool,
+        cappa.Arg(short=False, long=True, group=_GROUP_OPTIONS),
+        Doc("Display the changes that would be made, without making them."),
+    ] = False
+
     def __call__(self) -> int:
         # TODO: Gather sponsors from configured platforms.
         with GitHub(self.github_token) as github:
@@ -945,6 +951,7 @@ class CommandTeamSync:
                 include_users=set(self.github_include_users),
                 exclude_users=set(self.github_exclude_users),
                 org_users=self.github_organization_members,  # type: ignore[arg-type]
+                dry_run=self.dry_run,
             )
         return 0
 

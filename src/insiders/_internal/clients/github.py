@@ -387,6 +387,7 @@ class GitHub(Client):
         include_users: An[set[str] | None, Doc("Users to always grant access to.")] = None,
         exclude_users: An[set[str] | None, Doc("Users to never grant access to.")] = None,
         org_users: An[dict[str, set[str]] | None, Doc("Users to grant access to based on org.")] = None,
+        dry_run: An[bool, Doc("Display changes without applying them.")] = False,
     ) -> None:
         """Sync sponsors with members of a GitHub team."""
         sponsors = sponsors or self.get_sponsors(org_users)
@@ -404,12 +405,18 @@ class GitHub(Client):
         # Revoke accesses.
         for user in members:
             if user not in eligible_users:
-                self.revoke_access(user, org, team)
+                if dry_run:
+                    logger.info(f"Would revoke access from @{user} to {org}/{team} team.")
+                else:
+                    self.revoke_access(user, org, team)
 
         # Grant accesses.
         for user in invitable_users:
             if user not in members:
-                self.grant_access(user, org, team)
+                if dry_run:
+                    logger.info(f"Would grant access to @{user} to {org}/{team} team.")
+                else:
+                    self.grant_access(user, org, team)
 
     def create_repo(
         self,
