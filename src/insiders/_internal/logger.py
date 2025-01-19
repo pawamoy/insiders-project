@@ -141,9 +141,37 @@ def _update_record(record: Record) -> None:
 
 
 class _InterceptHandler(logging.Handler):
-    def __init__(self, level: int = 0, allow: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        level: int = 0,
+        include: tuple[str, ...] = (),
+        exclude: tuple[str, ...] = (),
+        downgrade: tuple[str, ...] = (),
+    ) -> None:
         super().__init__(level)
-        self.allow = allow
+        self.include = include
+        self.exclude = exclude
+        self.downgrade = downgrade
+
+    def _main(self, record: logging.LogRecord) -> bool:
+        return record.name.split(".", 1)[0] == "insiders"
+
+    def _show(self, record: logging.LogRecord) -> bool:
+        return self._main(record) or (self._included(record) and not self._excluded(record))
+
+    def _included(self, record: logging.LogRecord) -> bool:
+        return not self.include or (
+            record.name in self.include or any(record.name.startswith(f"{included}.") for included in self.include)
+        )
+
+    def _excluded(self, record: logging.LogRecord) -> bool:
+        return record.name in self.include or any(record.name.startswith(f"{hidden}.") for hidden in self.exclude)
+
+    def _downgraded(self, record: logging.LogRecord) -> bool:
+        return not self._main(record) and (
+            not self.downgrade
+            or (record.name in self.downgrade or any(record.name.startswith(f"{down}.") for down in self.downgrade))
+        )
 
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists.
@@ -152,8 +180,10 @@ class _InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Prevent too much noise from dependencies
-        if level == "INFO" and not record.name.startswith(self.allow):
+        # Prevent too much noise from dependencies.
+        if not self._show(record):
+            return
+        if level == "INFO" and self._downgraded(record):
             level = "DEBUG"
 
         # Find caller from where originated the logged message.
@@ -173,13 +203,16 @@ intercept_handler = _InterceptHandler()
 def configure_logging(
     level: Annotated[str, Doc("Log level (name).")],
     path: Annotated[str | Path | None, Doc("Log file path.")] = None,
-    allow: Annotated[
+    *,
+    include: Annotated[tuple[str, ...], Doc("List of package names for which to show logs.")] = (),
+    exclude: Annotated[tuple[str, ...], Doc("List of package names for which to hide logs.")] = (),
+    downgrade: Annotated[
         tuple[str, ...],
         Doc(
             """
             List of package names for which to allow log levels greater or equal to INFO level.
-            Packages that are not allowed will see all their logs demoted to DEBUG level.
-            If unspecified, allow everything.
+            Packages that are downgraded will see all their INFO logs demoted to DEBUG level.
+            If unspecified, downgrade every dependency.
             """,
         ),
     ] = (),
@@ -195,7 +228,9 @@ def configure_logging(
         "ERROR": logging.ERROR,  # 40
         "CRITICAL": logging.CRITICAL,  # 50
     }.get(level.upper(), logging.INFO)
-    intercept_handler.allow = allow
+    intercept_handler.include = include
+    intercept_handler.exclude = exclude
+    intercept_handler.downgrade = downgrade
     logging.basicConfig(handlers=[intercept_handler], level=0, force=True)
     loguru_format = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "

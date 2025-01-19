@@ -1132,7 +1132,13 @@ class CommandMain:
 
     @staticmethod
     def _configure_logging(command: CommandMain) -> None:
-        configure_logging(command.log_level, command.log_path)
+        configure_logging(
+            command.log_level,
+            command.log_path,
+            include=command.log_include,
+            exclude=command.log_exclude,
+            downgrade=command.log_downgrade,
+        )
 
     version: An[
         bool,
@@ -1175,7 +1181,7 @@ class CommandMain:
             show_default=True,
             group=_GROUP_GLOBAL_OPTIONS,
         ),
-        Doc("Log level to use when logging messages."),
+        Doc("Lowest log level to display. Levels below that will be hidden."),
     ] = "INFO"
 
     log_path: An[
@@ -1183,6 +1189,43 @@ class CommandMain:
         cappa.Arg(short="-P", long=True, propagate=True, show_default="standard error", group=_GROUP_GLOBAL_OPTIONS),
         Doc("Write log messages to this file path."),
     ] = None
+
+    log_include: An[
+        tuple[str, ...],
+        cappa.Arg(
+            short=False,
+            long=True,
+            propagate=True,
+            group=_GROUP_GLOBAL_OPTIONS,
+        ),
+        Doc("Include logs originating from these modules/loggers. By default, all logs are included."),
+    ] = field(default_factory=tuple)
+
+    log_exclude: An[
+        tuple[str, ...],
+        cappa.Arg(
+            short=False,
+            long=True,
+            propagate=True,
+            group=_GROUP_GLOBAL_OPTIONS,
+        ),
+        Doc(
+            "Exclude logs originating from these modules/loggers. Applied after inclusion. By default, nothing is excluded.",
+        ),
+    ] = field(default_factory=tuple)
+
+    log_downgrade: An[
+        tuple[str, ...],
+        cappa.Arg(
+            short=False,
+            long=True,
+            propagate=True,
+            group=_GROUP_GLOBAL_OPTIONS,
+        ),
+        Doc(
+            "Downgrade INFO logs to DEBUG for logs originating from these modules/loggers. By default, all dependency logs are downgraded.",
+        ),
+    ] = field(default_factory=tuple)
 
 
 def main(
