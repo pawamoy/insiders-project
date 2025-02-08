@@ -62,12 +62,12 @@ sort = [
 ]
 
 # A shell command to get your GitHub token.
-github-token-command = "pass show tokens/insiders/github"
+github-token-command = "command to echo token"
 
 # The backlog supports issue "boosts" (funding) via Polar.
 # If you have a Polar account and enabled Issue Funding,
 # you can configure it here.
-polar-token-command = "pass show tokens/insiders/polar"
+polar-token-command = "command to echo token"
 
 # A map of labels to emojis, for shorter display in the backlog.
 [backlog.issue-labels]
@@ -159,13 +159,13 @@ insiders_repository_name = "{insiders_name}"
 github-sponsored-account = "pawamoy"
 
 # A shell command to get your GitHub token.
-github-token-command = "pass show tokens/insiders/github"
+github-token-command = "command to echo token"
 
 # Your Polar account receiving sponsorships.
 polar-sponsored-account = "pawamoy"
 
 # A shell command to get your Polar token.
-polar-token-command = "pass show tokens/insiders/polar"
+polar-token-command = "command to echo token"
 
 # The minimum amount a sponsor must pledge to be considered an insider,
 # granting them access to your private projects.
