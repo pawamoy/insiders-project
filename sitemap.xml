@@ -2,138 +2,138 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pawamoy.github.io/insiders/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/changelog/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/code_of_conduct/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/contributing/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/credits/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/license/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/cli/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/cli/SUMMARY/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/cli/command-backlog/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/cli/command-index/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/cli/command-project/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
-         <loc>https://pawamoy.github.io/insiders/cli/command-pypi/</loc>
-         <lastmod>2025-01-17</lastmod>
-    </url>
-    <url>
-         <loc>https://pawamoy.github.io/insiders/cli/command-team/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <loc>https://pawamoy.github.io/insiders/cli/command-sponsors/</loc>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/insiders/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/insiders/changelog/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/insiders/installation/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/SUMMARY/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/cli/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/config/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/debug/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/defaults/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/logger/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/models/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/clients/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/clients/github/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/clients/kofi/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/clients/polar/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/clients/pypi/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/ops/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/ops/backlog/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/ops/projects/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
     </url>
     <url>
          <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/ops/report/</loc>
-         <lastmod>2025-01-17</lastmod>
+         <lastmod>2025-02-08</lastmod>
+    </url>
+    <url>
+         <loc>https://pawamoy.github.io/insiders/reference/insiders/_internal/ops/sponsors/</loc>
+         <lastmod>2025-02-08</lastmod>
     </url>
 </urlset>
