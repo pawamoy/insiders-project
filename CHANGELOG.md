@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [3.0.0](https://github.com/pawamoy/insiders-project/releases/tag/3.0.0) - 2025-02-08
+
+Big refactoring again. Configuration and models changed in a breaking way.
+
+<small>[Compare with 2.0.1](https://github.com/pawamoy/insiders-project/compare/2.0.1...3.0.0)</small>
+
+### Features
+
+- Implement `sponsors list` command ([af52d70](https://github.com/pawamoy/insiders-project/commit/af52d7038c98327ab75ef9e9003e5499bcfe9bf9) by Timothée Mazzucotelli). [Issue-2](https://github.com/pawamoy/insiders-project/issues/2), [Issue-4](https://github.com/pawamoy/insiders-project/issues/4)
+- Add dry-run mode for `sponsors team-sync` command ([948d053](https://github.com/pawamoy/insiders-project/commit/948d053199ea5520c3d0380393724b948b9f128a) by Timothée Mazzucotelli).
+
+### Code Refactoring
+
+- Allow finer-grain logs filtering ([c86bdd5](https://github.com/pawamoy/insiders-project/commit/c86bdd536120cec021bdb732cb66a42b413547ae) by Timothée Mazzucotelli).
+
 ## [2.0.1](https://github.com/pawamoy/insiders/releases/tag/2.0.1) - 2025-01-17
 
 <small>[Compare with 2.0.0](https://github.com/pawamoy/insiders/compare/2.0.0...2.0.1)</small>
