@@ -35,12 +35,10 @@ from insiders._internal.clients.index import Index
 from insiders._internal.clients.polar import Polar
 from insiders._internal.config import Config, Unset
 from insiders._internal.logger import configure_logging
-
-# TODO: Explicit short args.
-# TODO: Use PEP 727 everywhere.
-# TODO: Re-organize all this.
+from insiders._internal.models import Sponsors
 from insiders._internal.ops.backlog import get_backlog, print_backlog
 from insiders._internal.ops.projects import new_public_and_insiders_github_projects
+from insiders._internal.ops.sponsors import print_sponsors
 
 _GROUP_ARGUMENTS = (10, "Arguments")
 _GROUP_OPTIONS = (20, "Options")
@@ -62,350 +60,154 @@ class FromConfig(cappa.ValueFrom):
 
 
 # ============================================================================ #
-# Projects                                                                     #
+# Backlog                                                                      #
 # ============================================================================ #
-@cappa.command(name="project", help="Manage projects (GitHub and local copies).")
-@dataclass(kw_only=True)
-class CommandProject:
-    """Command to manage projects on GitHub and locally."""
-
-    subcommand: An[
-        CommandProjectCreate | CommandProjectCheck,
-        cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
-        Doc("The selected subcommand."),
-    ]
-
-
 @cappa.command(
-    name="create",
-    help="Create public/insiders repositories.",
+    name="backlog",
+    help="List the backlog.",
     description=cleandoc(
         """
-        This command will do several things:
-
-        - Create public and insiders repositories on GitHub
-            (using the provided namespace, username, repository name, description, etc.).
-        - Clone these two repositories locally (using the provided repository paths).
-        - Optionally initialize the public repository by generating initial contents
-            using the specified [Copier](https://copier.readthedocs.io/en/stable/) template and answers.
-        - Optionally run a post creation command into the public repository.
-        - Pull the public contents into the insiders clone (by declaring an `upstream` remote).
-
-        *Example 1 - Project in user's namespace*
-
-        The insiders namespace, insiders repository name and username are inferred
-        from the namespace and repository name.
-
-        ```bash
-        insiders create \\
-            -n pawamoy \\
-            -r mkdocs-ultimate \\
-            -d "The ultimate plugin for MkDocs (??)" \\
-            -o ~/data/dev \\
-            -O ~/data/dev/insiders \\
-            -t gh:pawamoy/copier-uv
-        ```
-
-        *Example 2 - Project in another namespace:*
-
-        The insiders namespace, insiders repository name and username are different,
-        so must be provided explicitly:
-
-        ```bash
-        insiders create \\
-            -n mkdocstrings \\
-            -r rust \\
-            -d "A Rust handler for mkdocstrings" \\
-            -o ~/data/dev \\
-            -O ~/data/dev/insiders \\
-            -N pawamoy-insiders \\
-            -R mkdocstrings-rust \\
-            -u pawamoy \\
-            -t gh:mkdocstrings/handler-template
-        ```
+        List the issues in the backlog.
         """,
     ),
 )
 @dataclass(kw_only=True)
-class CommandProjectCreate:
-    """Command to create public/insiders repositories."""
-
-    repository: An[
-        str,
-        cappa.Arg(short="-r", long=True, group=_GROUP_OPTIONS),
-        Doc("""Name of the public repository."""),
-    ]
-
-    description: An[
-        str,
-        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
-        Doc("""Shared description."""),
-    ]
-
-    namespace: An[
-        str,
-        cappa.Arg(
-            short="-n",
-            long=True,
-            default=FromConfig(Config.github_project_namespace),
-            show_default=f"{Config.github_project_namespace}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Namespace of the public repository."""),
-    ]
-
-    project_directory: An[
-        Path,
-        cappa.Arg(
-            short="-o",
-            long=True,
-            default=FromConfig(Config.project_directory),
-            show_default=f"{Config.project_directory}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Directory in which to clone the public repository."""),
-    ]
-
-    insiders_repository: An[
-        str | None,
-        cappa.Arg(short="-R", long=True, show_default="public name", group=_GROUP_OPTIONS),
-        Doc("""Name of the insiders repository."""),
-    ] = None
-
-    insiders_namespace: An[
-        str | None,
-        cappa.Arg(
-            short="-N",
-            long=True,
-            default=FromConfig(Config.github_insiders_project_namespace),
-            show_default=f"{Config.github_insiders_project_namespace} or public namespace",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Namespace of the insiders repository."""),
-    ] = None
-
-    insiders_project_directory: An[  # type: ignore[misc]
-        Path,
-        cappa.Arg(
-            short="-O",
-            long=True,
-            default=FromConfig(Config.project_insiders_directory),
-            show_default=f"{Config.project_insiders_directory}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Directory in which to clone the insiders repository."""),
-    ]
-
-    github_username: An[
-        str | None,
-        cappa.Arg(
-            short="-u",
-            long=True,
-            default=FromConfig(Config.github_username),
-            show_default=f"{Config.github_username} or public namespace",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""GitHub username."""),
-    ] = None
-
-    copier_template: An[
-        str | None,
-        cappa.Arg(
-            short="-t",
-            long=True,
-            default=FromConfig(Config.project_copier_template),
-            show_default=f"{Config.project_copier_template}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Copier template to generate new projects with."""),
-    ] = None
+class CommandBacklog:
+    """Command to list the backlog of issues."""
 
     @staticmethod
-    def _parse_dict(arg: str) -> dict[str, str]:
-        return dict(pair.split("=", 1) for pair in arg.split(","))
+    def _parse_sort(arg: str) -> list[Callable]:
+        return Config._eval_sort(arg.split(",")) or []
 
-    copier_template_answers: An[
-        dict[str, str] | None,
+    backlog_namespaces: An[
+        list[str],
         cappa.Arg(
-            short="-a",
-            long=True,
-            parse=_parse_dict,
-            default=FromConfig(Config.project_copier_template_answers),
-            show_default=f"{Config.project_copier_template_answers}",
-            group=_GROUP_OPTIONS,
+            short=False,
+            long=False,
+            default=cappa.Env("BACKLOG_NAMESPACES") | FromConfig(Config.backlog_namespaces),
+            show_default=f"`BACKLOG_NAMESPACES` env-var or {Config.backlog_namespaces}",
+            group=_GROUP_ARGUMENTS,
         ),
-        Doc("""Copier template answers to use when generating a project."""),
-    ] = None
+        Doc("Namespaces to fetch issues from."),
+    ]
 
-    post_creation_command: An[
-        list[str] | None,
-        cappa.Arg(
-            short="-x",
-            long=True,
-            num_args=1,
-            parse=shlex.split,
-            default=FromConfig(Config.project_post_creation_command),
-            show_default=f"{Config.project_post_creation_command}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("""Command to run after creating the public repository."""),
-    ] = None
-
-    register_on_pypi: An[
-        bool,
+    issue_labels: An[
+        dict[str, str],
         cappa.Arg(
             short="-i",
             long=True,
-            default=FromConfig(Config.project_register_on_pypi),
-            show_default=f"{Config.project_register_on_pypi}",
+            default=FromConfig(Config.backlog_issue_labels),
+            show_default=f"{Config.backlog_issue_labels}",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""Whether to register the project on PyPI after creating it."""),
+        Doc("Issue labels to keep in issues metadata, and how they are represented."),
+    ] = field(default_factory=dict)
+
+    limit: An[
+        int,
+        cappa.Arg(
+            short="-l",
+            long=True,
+            default=FromConfig(Config.backlog_limit),
+            show_default=f"{Config.backlog_limit} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Limit the number of issues to display."),
+    ] = 0
+
+    sort: An[
+        list[Callable],
+        cappa.Arg(
+            short="-s",
+            long=True,
+            parse=_parse_sort,
+            default=FromConfig(Config.backlog_sort),
+            show_default=f"{Config.backlog_sort}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("Sort strategy."),
+    ] = field(default_factory=list)
+
+    public: An[
+        bool,
+        cappa.Arg(short=False, long=True, show_default=False, group=_GROUP_OPTIONS),
+        Doc("Only use public sponsorships."),
     ] = False
 
-    pypi_username: An[
-        str | None,
+    polar_token: An[
+        str,
         cappa.Arg(
-            short="-y",
-            long=True,
-            default=FromConfig(Config.pypi_username),
-            show_default=f"{Config.pypi_username}",
+            short=False,
+            long=("--plt", "--polar-token"),
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.backlog_polar_token),
+            show_default="`POLAR_TOKEN` env-var or `backlog.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""PyPI username to register the project with."""),
-    ] = None
+        Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
+    ] = ""
+
+    polar_beneficiaries: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--plb", "--polar-beneficiaries"),
+            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            show_default=f"{Config.sponsors_polar_beneficiaries}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Beneficiaries of Polar sponsors."""),
+    ] = field(default_factory=dict)
+
+    github_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ght", "--github-token"),
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.backlog_github_token),
+            show_default="`GITHUB_TOKEN` env-var or `backlog.github-token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A GitHub token. Recommended scopes: `read:user`."""),
+    ] = ""
+
+    github_beneficiaries: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--ghb", "--github-beneficiaries"),
+            default=FromConfig(Config.sponsors_github_beneficiaries),
+            show_default=f"{Config.sponsors_github_beneficiaries}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Beneficiaries of GitHub sponsors."""),
+    ] = field(default_factory=dict)
 
     def __call__(self) -> int:
-        new_public_and_insiders_github_projects(
-            public_namespace=self.namespace,
-            public_name=self.repository,
-            description=self.description,
-            # We use the Insiders name here as it will generally be more independant of the namespace
-            # (for example `mkdocstrings-python` instead of just `python`).
-            public_repo_path=self.project_directory / (self.insiders_repository or self.repository),
-            insiders_namespace=self.insiders_namespace,
-            insiders_name=self.insiders_repository,
-            insiders_repo_path=self.insiders_project_directory / (self.insiders_repository or self.repository),
-            github_username=self.github_username,
-            copier_template=self.copier_template,
-            copier_template_answers=self.copier_template_answers,
-            post_creation_command=self.post_creation_command,
-        )
-        if self.register_on_pypi:
-            if not self.pypi_username:
-                raise cappa.Exit("PyPI username must be provided to register the project on PyPI.", code=1)
-            pypi.reserve_pypi(
-                username=self.pypi_username,
-                name=self.repository,
-                description=self.description,
+        github_context = GitHub(self.github_token)
+        polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
+        with github_context as github, polar_context as polar, Console().status("") as status:
+            status.update("Fetching sponsors from GitHub")
+            sponsors = github.get_sponsors(exclude_private=self.public)
+            if polar:
+                status.update("Fetching sponsors from Polar")
+                sponsors.merge(polar.get_sponsors(exclude_private=self.public))
+            status.update("Consolidating sponsors beneficiaries")
+            github.consolidate_beneficiaries(
+                sponsors,
+                {"github": self.github_beneficiaries, "polar": self.polar_beneficiaries},
             )
-        return 0
-
-
-@cappa.command(
-    name="check",
-    help="Check public/insiders repositories.",
-    description=cleandoc(
-        """
-        TODO. Check that everything is consistent.
-        """,
-    ),
-)
-@dataclass(kw_only=True)
-class CommandProjectCheck:
-    """Command to check GitHub projects."""
-
-    def __call__(self) -> int:
-        raise cappa.Exit("Not implemented yet.", code=1)
-
-
-# ============================================================================ #
-# PyPI                                                                         #
-# ============================================================================ #
-@cappa.command(name="pypi", help="Manage PyPI-related things.")
-@dataclass(kw_only=True)
-class CommandPyPI:
-    """Command to manage PyPI-related things."""
-
-    subcommand: An[
-        CommandPyPIRegister,
-        cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
-        Doc("The selected subcommand."),
-    ]
-
-
-@cappa.command(
-    name="register",
-    help="Register a name on PyPI.",
-    description=cleandoc(
-        """
-        This will create a temporary project on your filesystem,
-        then build both source and wheel distributions for it,
-        and upload them to PyPI using Twine.
-
-        After that, you will see an initial version 0.0.0
-        of your project on PyPI.
-
-        *Example*
-
-        ```bash
-        insiders pypi register -u pawamoy -n my-new-project -d "My new project!"
-        ```
-
-        Credentials must be configured in `~/.pypirc` to allow Twine to push to PyPI.
-        For example, if you use [PyPI API tokens](https://pypi.org/help/#apitoken),
-        add the token to your keyring:
-
-        ```bash
-        pipx install keyring
-        keyring set https://upload.pypi.org/legacy/ __token__
-        # __token__ is a literal string, do not replace it with your token.
-        # The command will prompt you to paste your token.
-        ```
-
-        And configure `~/.pypirc`:
-
-        ```ini
-        [distutils]
-        index-servers =
-            pypi
-
-        [pypi]
-        username: __token__
-        ```
-        """,
-    ),
-)
-@dataclass(kw_only=True)
-class CommandPyPIRegister:
-    """Command to register a project name on PyPI."""
-
-    username: An[
-        str,
-        cappa.Arg(
-            short="-u",
-            long=True,
-            default=FromConfig(Config.pypi_username),
-            show_default=f"{Config.pypi_username}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("Username on PyPI (your account)."),
-    ]
-
-    name: An[
-        str,
-        cappa.Arg(short="-n", long=True, group=_GROUP_OPTIONS),
-        Doc("Name to register."),
-    ]
-
-    description: An[
-        str,
-        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
-        Doc("Description of the project on PyPI."),
-    ]
-
-    def __call__(self) -> Any:
-        pypi.reserve_pypi(self.username, self.name, self.description)
+            status.update(f"Fetching issues from GitHub{' and Polar' if isinstance(polar, Polar) else ''}")
+            backlog = get_backlog(
+                self.backlog_namespaces,
+                github=github,
+                polar=polar,
+                sponsors=sponsors,
+                issue_labels=set(self.issue_labels),
+            )
+        if self.sort:
+            status.update("Sorting issues")
+            backlog.sort(*self.sort)
+        print_backlog(backlog, self.issue_labels, limit=self.limit)
         return 0
 
 
@@ -785,107 +587,412 @@ class CommandIndexLogs:
 
 
 # ============================================================================ #
-# Teams                                                                        #
+# Projects                                                                     #
 # ============================================================================ #
-@cappa.command(name="team", help="Manage GitHub teams.")
+@cappa.command(name="project", help="Manage projects (GitHub and local copies).")
 @dataclass(kw_only=True)
-class CommandTeam:
-    """Command to manage GitHub teams."""
+class CommandProject:
+    """Command to manage projects on GitHub and locally."""
 
-    subcommand: An[cappa.Subcommands[CommandTeamList | CommandTeamSync], Doc("The selected subcommand.")]
+    subcommand: An[
+        CommandProjectCreate | CommandProjectCheck | CommandProjectPyPIRegister,
+        cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
+        Doc("The selected subcommand."),
+    ]
 
 
 @cappa.command(
-    name="list",
-    help="List members of a team.",
+    name="create",
+    help="Create public/insiders repositories.",
     description=cleandoc(
         """
-        List the members of a GitHub team.
+        This command will do several things:
+
+        - Create public and insiders repositories on GitHub
+            (using the provided namespace, username, repository name, description, etc.).
+        - Clone these two repositories locally (using the provided repository paths).
+        - Optionally initialize the public repository by generating initial contents
+            using the specified [Copier](https://copier.readthedocs.io/en/stable/) template and answers.
+        - Optionally run a post creation command into the public repository.
+        - Pull the public contents into the insiders clone (by declaring an `upstream` remote).
+
+        *Example 1 - Project in user's namespace*
+
+        The insiders namespace, insiders repository name and username are inferred
+        from the namespace and repository name.
+
+        ```bash
+        insiders create \\
+            -n pawamoy \\
+            -r mkdocs-ultimate \\
+            -d "The ultimate plugin for MkDocs (??)" \\
+            -o ~/data/dev \\
+            -O ~/data/dev/insiders \\
+            -t gh:pawamoy/copier-uv
+        ```
+
+        *Example 2 - Project in another namespace:*
+
+        The insiders namespace, insiders repository name and username are different,
+        so must be provided explicitly:
+
+        ```bash
+        insiders create \\
+            -n mkdocstrings \\
+            -r rust \\
+            -d "A Rust handler for mkdocstrings" \\
+            -o ~/data/dev \\
+            -O ~/data/dev/insiders \\
+            -N pawamoy-insiders \\
+            -R mkdocstrings-rust \\
+            -u pawamoy \\
+            -t gh:mkdocstrings/handler-template
+        ```
         """,
     ),
 )
 @dataclass(kw_only=True)
-class CommandTeamList:
-    """Command to list team memberships."""
+class CommandProjectCreate:
+    """Command to create public/insiders repositories."""
+
+    repository: An[
+        str,
+        cappa.Arg(short="-r", long=True, group=_GROUP_OPTIONS),
+        Doc("""Name of the public repository."""),
+    ]
+
+    description: An[
+        str,
+        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
+        Doc("""Shared description."""),
+    ]
+
+    namespace: An[
+        str,
+        cappa.Arg(
+            short="-n",
+            long=True,
+            default=FromConfig(Config.project_namespace),
+            show_default=f"{Config.project_namespace}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Namespace of the public repository."""),
+    ]
+
+    project_directory: An[
+        Path,
+        cappa.Arg(
+            short="-o",
+            long=True,
+            default=FromConfig(Config.project_directory),
+            show_default=f"{Config.project_directory}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Directory in which to clone the public repository."""),
+    ]
+
+    insiders_repository: An[
+        str | None,
+        cappa.Arg(short="-R", long=True, show_default="public name", group=_GROUP_OPTIONS),
+        Doc("""Name of the insiders repository."""),
+    ] = None
+
+    insiders_namespace: An[
+        str | None,
+        cappa.Arg(
+            short="-N",
+            long=True,
+            default=FromConfig(Config.project_insiders_namespace),
+            show_default=f"{Config.project_insiders_namespace} or public namespace",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Namespace of the insiders repository."""),
+    ] = None
+
+    insiders_project_directory: An[  # type: ignore[misc]
+        Path,
+        cappa.Arg(
+            short="-O",
+            long=True,
+            default=FromConfig(Config.project_insiders_directory),
+            show_default=f"{Config.project_insiders_directory}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Directory in which to clone the insiders repository."""),
+    ]
+
+    github_username: An[
+        str | None,
+        cappa.Arg(
+            short="-u",
+            long=True,
+            default=FromConfig(Config.project_github_username),
+            show_default=f"{Config.project_github_username} or public namespace",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""GitHub username."""),
+    ] = None
+
+    copier_template: An[
+        str | None,
+        cappa.Arg(
+            short="-t",
+            long=True,
+            default=FromConfig(Config.project_copier_template),
+            show_default=f"{Config.project_copier_template}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Copier template to generate new projects with."""),
+    ] = None
+
+    @staticmethod
+    def _parse_dict(arg: str) -> dict[str, str]:
+        return dict(pair.split("=", 1) for pair in arg.split(","))
+
+    copier_template_answers: An[
+        dict[str, str] | None,
+        cappa.Arg(
+            short="-a",
+            long=True,
+            parse=_parse_dict,
+            default=FromConfig(Config.project_copier_template_answers),
+            show_default=f"{Config.project_copier_template_answers}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Copier template answers to use when generating a project."""),
+    ] = None
+
+    post_creation_command: An[
+        list[str] | None,
+        cappa.Arg(
+            short="-x",
+            long=True,
+            num_args=1,
+            parse=shlex.split,
+            default=FromConfig(Config.project_post_creation_command),
+            show_default=f"{Config.project_post_creation_command}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Command to run after creating the public repository."""),
+    ] = None
+
+    register_on_pypi: An[
+        bool,
+        cappa.Arg(
+            short="-i",
+            long=True,
+            default=FromConfig(Config.project_register_on_pypi),
+            show_default=f"{Config.project_register_on_pypi}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Whether to register the project on PyPI after creating it."""),
+    ] = False
+
+    pypi_username: An[
+        str | None,
+        cappa.Arg(
+            short="-y",
+            long=True,
+            default=FromConfig(Config.project_pypi_username),
+            show_default=f"{Config.project_pypi_username}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""PyPI username to register the project with."""),
+    ] = None
+
+    def __call__(self) -> int:
+        new_public_and_insiders_github_projects(
+            public_namespace=self.namespace,
+            public_name=self.repository,
+            description=self.description,
+            # We use the Insiders name here as it will generally be more independant of the namespace
+            # (for example `mkdocstrings-python` instead of just `python`).
+            public_repo_path=self.project_directory / (self.insiders_repository or self.repository),
+            insiders_namespace=self.insiders_namespace,
+            insiders_name=self.insiders_repository,
+            insiders_repo_path=self.insiders_project_directory / (self.insiders_repository or self.repository),
+            github_username=self.github_username,
+            copier_template=self.copier_template,
+            copier_template_answers=self.copier_template_answers,
+            post_creation_command=self.post_creation_command,
+        )
+        if self.register_on_pypi:
+            if not self.pypi_username:
+                raise cappa.Exit("PyPI username must be provided to register the project on PyPI.", code=1)
+            pypi.reserve_pypi(
+                username=self.pypi_username,
+                name=self.repository,
+                description=self.description,
+            )
+        return 0
+
+
+@cappa.command(
+    name="check",
+    help="Check public/insiders repositories.",
+    description=cleandoc(
+        """
+        TODO. Check that everything is consistent.
+        """,
+    ),
+)
+@dataclass(kw_only=True)
+class CommandProjectCheck:
+    """Command to check GitHub projects."""
 
     def __call__(self) -> int:
         raise cappa.Exit("Not implemented yet.", code=1)
 
 
 @cappa.command(
-    name="sync",
-    help="Synchronize members of a team with current sponsors.",
+    name="register-pypi",
+    help="Register a name on PyPI.",
     description=cleandoc(
         """
-        Fetch current sponsors from GitHub,
-        then grant or revoke access to a GitHub team
-        for eligible sponsors.
+        This will create a temporary project on your filesystem,
+        then build both source and wheel distributions for it,
+        and upload them to PyPI using Twine.
+
+        After that, you will see an initial version 0.0.0
+        of your project on PyPI.
+
+        *Example*
+
+        ```bash
+        insiders pypi register -u pawamoy -n my-new-project -d "My new project!"
+        ```
+
+        Credentials must be configured in `~/.pypirc` to allow Twine to push to PyPI.
+        For example, if you use [PyPI API tokens](https://pypi.org/help/#apitoken),
+        add the token to your keyring:
+
+        ```bash
+        pipx install keyring
+        keyring set https://upload.pypi.org/legacy/ __token__
+        # __token__ is a literal string, do not replace it with your token.
+        # The command will prompt you to paste your token.
+        ```
+
+        And configure `~/.pypirc`:
+
+        ```ini
+        [distutils]
+        index-servers =
+            pypi
+
+        [pypi]
+        username: __token__
+        ```
         """,
     ),
 )
 @dataclass(kw_only=True)
-class CommandTeamSync:
-    """Command to sync team memberships with current sponsors."""
+class CommandProjectPyPIRegister:
+    """Command to register a project name on PyPI."""
 
-    github_insiders_team: An[
+    username: An[
         str,
         cappa.Arg(
-            short=False,
-            long=False,
-            num_args=1,
-            default=FromConfig(Config.github_insiders_team),
-            show_default=f"{Config.github_insiders_team}",
-            group=_GROUP_ARGUMENTS,
+            short="-u",
+            long=True,
+            default=FromConfig(Config.project_pypi_username),
+            show_default=f"{Config.project_pypi_username}",
+            group=_GROUP_OPTIONS,
         ),
-        Doc("""The GitHub team to sync."""),
+        Doc("Username on PyPI (your account)."),
     ]
+
+    name: An[
+        str,
+        cappa.Arg(short="-n", long=True, group=_GROUP_OPTIONS),
+        Doc("Name to register."),
+    ]
+
+    description: An[
+        str,
+        cappa.Arg(short="-d", long=True, group=_GROUP_OPTIONS),
+        Doc("Description of the project on PyPI."),
+    ]
+
+    def __call__(self) -> Any:
+        pypi.reserve_pypi(self.username, self.name, self.description)
+        return 0
+
+
+# ============================================================================ #
+# Sponsors                                                                     #
+# ============================================================================ #
+@cappa.command(name="sponsors", help="Manage sponsors.")
+@dataclass(kw_only=True)
+class CommandSponsors:
+    """Command to manage sponsors."""
+
+    subcommand: An[
+        CommandSponsorsList | CommandSponsorsShow | CommandSponsorsTeamList | CommandSponsorsTeamSync,
+        cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
+        Doc("The selected subcommand."),
+    ]
+
+
+@cappa.command(
+    name="list",
+    help="List sponsors.",
+    description=cleandoc(
+        """
+        List sponsors and non-sponsors benefitting from sponsorships.
+        """,
+    ),
+)
+@dataclass(kw_only=True)
+class CommandSponsorsList:
+    """Command to list sponsors."""
 
     github_sponsored_account: An[
         str,
         cappa.Arg(
             short=False,
             long=("--ghsa", "--github-sponsored-account"),
-            default=FromConfig(Config.github_sponsored_account),
-            show_default=f"{Config.github_sponsored_account} or none",
+            default=FromConfig(Config.sponsors_github_sponsored_account),
+            show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
         Doc("""The sponsored account on GitHub Sponsors."""),
     ] = ""
 
-    github_include_users: An[
+    include_users: An[
         list[str],
         cappa.Arg(
             short=False,
             long=("--ghiu", "--github-include-users"),
-            default=FromConfig(Config.github_include_users),
-            show_default=f"{Config.github_include_users}",
+            default=FromConfig(Config.sponsors_include_users),
+            show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
         Doc("""Users that should always be in the team."""),
     ] = field(default_factory=list)
 
-    github_exclude_users: An[
+    exclude_users: An[
         list[str],
         cappa.Arg(
             short=False,
             long=("--gheu", "--github-exclude-users"),
-            default=FromConfig(Config.github_exclude_users),
-            show_default=f"{Config.github_exclude_users}",
+            default=FromConfig(Config.sponsors_exclude_users),
+            show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
         Doc("""Users that should never be in the team."""),
     ] = field(default_factory=list)
 
-    github_organization_members: An[
+    github_beneficiaries: An[
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghom", "--github-organization-members"),
-            default=FromConfig(Config.github_organization_members),
-            show_default=f"{Config.github_organization_members}",
+            long=("--ghb", "--github-beneficiaries"),
+            default=FromConfig(Config.sponsors_github_beneficiaries),
+            show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""A mapping of users belonging to sponsoring organizations."""),
+        Doc("""Beneficiaries of GitHub sponsors."""),
     ] = field(default_factory=dict)
 
     github_token: An[
@@ -893,8 +1000,8 @@ class CommandTeamSync:
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.github_token),
-            show_default="`GITHUB_TOKEN` env-var or `github.token-command` config-value",
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
         Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`."""),
@@ -905,8 +1012,175 @@ class CommandTeamSync:
         cappa.Arg(
             short=False,
             long=("--plsa", "--polar-sponsored-account"),
-            default=FromConfig(Config.polar_sponsored_account),
-            show_default=f"{Config.polar_sponsored_account} or none",
+            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            show_default=f"{Config.sponsors_polar_sponsored_account} or none",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""The sponsored account on Polar."""),
+    ] = ""
+
+    polar_beneficiaries: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--plb", "--polar-beneficiaries"),
+            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            show_default=f"{Config.sponsors_polar_beneficiaries}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Beneficiaries of Polar sponsors."""),
+    ] = field(default_factory=dict)
+
+    polar_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plt", "--polar-token"),
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
+    ] = ""
+
+    minimum_amount: An[
+        int,
+        cappa.Arg(
+            short="-m",
+            long=True,
+            default=FromConfig(Config.sponsors_minimum_amount),
+            show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Minimum amount to be considered an insider."""),
+    ] = 0
+
+    public: An[
+        bool,
+        cappa.Arg(short=False, long=True, show_default=False, group=_GROUP_OPTIONS),
+        Doc("Only use public sponsorships."),
+    ] = False
+
+    sponsorships: An[
+        bool,
+        cappa.Arg(short="-S", long=True, show_default=False, group=_GROUP_OPTIONS),
+        Doc("List sponsorships rather than users/sponsors."),
+    ] = False
+
+    def __call__(self) -> int:
+        github_context = GitHub(self.github_token) if self.github_token else nullcontext()
+        polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
+        with github_context as github, polar_context as polar, Console().status("") as status:
+            sponsors = Sponsors()
+            if github:
+                status.update("Fetching sponsors from GitHub")
+                sponsors.merge(github.get_sponsors(exclude_private=self.public))
+            if polar:
+                status.update("Fetching sponsors from Polar")
+                sponsors.merge(polar.get_sponsors(exclude_private=self.public))
+            if github:
+                status.update("Consolidating sponsors beneficiaries")
+                github.consolidate_beneficiaries(
+                    sponsors,
+                    {"github": self.github_beneficiaries, "polar": self.polar_beneficiaries},
+                )
+        print_sponsors(sponsors, min_amount=self.minimum_amount, sponsorships=self.sponsorships)
+        return 0
+
+
+@cappa.command(
+    name="show",
+    help="Show details about a sponsor/user.",
+    description=cleandoc(
+        """
+        TODO. Show details about a sponsor/user.
+        """,
+    ),
+)
+@dataclass(kw_only=True)
+class CommandSponsorsShow:
+    """Command to show details about a sponsor/user."""
+
+    insiders_team: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=False,
+            num_args=1,
+            default=FromConfig(Config.sponsors_insiders_team),
+            show_default=f"{Config.sponsors_insiders_team}",
+            group=_GROUP_ARGUMENTS,
+        ),
+        Doc("""The GitHub team to sync."""),
+    ]
+
+    github_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ghsa", "--github-sponsored-account"),
+            default=FromConfig(Config.sponsors_github_sponsored_account),
+            show_default=f"{Config.sponsors_github_sponsored_account} or none",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""The sponsored account on GitHub Sponsors."""),
+    ] = ""
+
+    include_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--iu", "--include-users"),
+            default=FromConfig(Config.sponsors_include_users),
+            show_default=f"{Config.sponsors_include_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should always be in the team."""),
+    ] = field(default_factory=list)
+
+    exclude_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--eu", "--exclude-users"),
+            default=FromConfig(Config.sponsors_exclude_users),
+            show_default=f"{Config.sponsors_exclude_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should never be in the team."""),
+    ] = field(default_factory=list)
+
+    github_beneficiaries: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--ghb", "--github-beneficiaries"),
+            default=FromConfig(Config.sponsors_github_beneficiaries),
+            show_default=f"{Config.sponsors_github_beneficiaries}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A mapping of users belonging to sponsoring organizations."""),
+    ] = field(default_factory=dict)
+
+    github_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ght", "--github-token"),
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`."""),
+    ] = ""
+
+    polar_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plsa", "--polar-sponsored-account"),
+            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
         Doc("""The sponsored account on Polar."""),
@@ -917,8 +1191,8 @@ class CommandTeamSync:
         cappa.Arg(
             short=False,
             long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.polar_token),
-            show_default="`POLAR_TOKEN` env-var or `polar.token-command` config-value",
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
         Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
@@ -927,7 +1201,7 @@ class CommandTeamSync:
     minimum_amount: An[
         int,
         cappa.Arg(
-            short=True,
+            short="-m",
             long=True,
             default=FromConfig(Config.sponsors_minimum_amount),
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
@@ -943,151 +1217,190 @@ class CommandTeamSync:
     ] = False
 
     def __call__(self) -> int:
-        # TODO: Gather sponsors from configured platforms.
-        with GitHub(self.github_token) as github:
-            github.sync_team(
-                self.github_insiders_team,
-                min_amount=self.minimum_amount,
-                include_users=set(self.github_include_users),
-                exclude_users=set(self.github_exclude_users),
-                org_users=self.github_organization_members,  # type: ignore[arg-type]
-                dry_run=self.dry_run,
-            )
-        return 0
+        raise NotImplementedError("Not implemented yet.")
 
 
-# ============================================================================ #
-# Backlog                                                                      #
-# ============================================================================ #
 @cappa.command(
-    name="backlog",
-    help="List the backlog.",
+    name="team-list",
+    help="List members of a team.",
     description=cleandoc(
         """
-        List the issues in the backlog.
+        List the members of a GitHub team.
         """,
     ),
 )
 @dataclass(kw_only=True)
-class CommandBacklog:
-    """Command to list the backlog of issues."""
+class CommandSponsorsTeamList:
+    """Command to list team memberships."""
 
-    @staticmethod
-    def _parse_sort(arg: str) -> list[Callable]:
-        return Config._eval_sort(arg.split(",")) or []
+    def __call__(self) -> int:
+        raise cappa.Exit("Not implemented yet.", code=1)
 
-    backlog_namespaces: An[
-        list[str],
-        cappa.Arg(
-            short=False,
-            long=False,
-            default=cappa.Env("BACKLOG_NAMESPACES") | FromConfig(Config.backlog_namespaces),
-            show_default=f"`BACKLOG_NAMESPACES` env-var or {Config.backlog_namespaces}",
-            group=_GROUP_ARGUMENTS,
-        ),
-        Doc("Namespaces to fetch issues from."),
-    ]
 
-    issue_labels: An[
-        dict[str, str],
-        cappa.Arg(
-            short=True,
-            long=True,
-            default=FromConfig(Config.backlog_issue_labels),
-            show_default=f"{Config.backlog_issue_labels}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("Issue labels to keep in issues metadata, and how they are represented."),
-    ] = field(default_factory=dict)
+@cappa.command(
+    name="team-sync",
+    help="Synchronize members of a team with current sponsors.",
+    description=cleandoc(
+        """
+        Fetch current sponsors from GitHub,
+        then grant or revoke access to a GitHub team
+        for eligible sponsors.
+        """,
+    ),
+)
+@dataclass(kw_only=True)
+class CommandSponsorsTeamSync:
+    """Command to sync team memberships with current sponsors."""
 
-    limit: An[
-        int,
-        cappa.Arg(
-            short=True,
-            long=True,
-            default=FromConfig(Config.backlog_limit),
-            show_default=f"{Config.backlog_limit} or `{{default}}`",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("Limit the number of issues to display."),
-    ] = 0
-
-    sort: An[
-        list[Callable],
-        cappa.Arg(
-            short=True,
-            long=True,
-            parse=_parse_sort,
-            default=FromConfig(Config.backlog_sort),
-            show_default=f"{Config.backlog_sort}",
-            group=_GROUP_OPTIONS,
-        ),
-        Doc("Sort strategy."),
-    ] = field(default_factory=list)
-
-    public: An[
-        bool,
-        cappa.Arg(short=False, long=True, show_default=False, group=_GROUP_OPTIONS),
-        Doc("Only use public sponsorships."),
-    ] = False
-
-    polar_token: An[
+    insiders_team: An[
         str,
         cappa.Arg(
             short=False,
-            long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.polar_token),
-            show_default="`POLAR_TOKEN` env-var or `polar.token-command` config-value",
+            long=False,
+            num_args=1,
+            default=FromConfig(Config.sponsors_insiders_team),
+            show_default=f"{Config.sponsors_insiders_team}",
+            group=_GROUP_ARGUMENTS,
+        ),
+        Doc("""The GitHub team to sync."""),
+    ]
+
+    github_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--ghsa", "--github-sponsored-account"),
+            default=FromConfig(Config.sponsors_github_sponsored_account),
+            show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
+        Doc("""The sponsored account on GitHub Sponsors."""),
     ] = ""
+
+    include_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--iu", "--include-users"),
+            default=FromConfig(Config.sponsors_include_users),
+            show_default=f"{Config.sponsors_include_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should always be in the team."""),
+    ] = field(default_factory=list)
+
+    exclude_users: An[
+        list[str],
+        cappa.Arg(
+            short=False,
+            long=("--eu", "--exclude-users"),
+            default=FromConfig(Config.sponsors_exclude_users),
+            show_default=f"{Config.sponsors_exclude_users}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Users that should never be in the team."""),
+    ] = field(default_factory=list)
+
+    github_beneficiaries: An[
+        dict[str, list[str]],
+        cappa.Arg(
+            short=False,
+            long=("--ghb", "--github-beneficiaries"),
+            default=FromConfig(Config.sponsors_github_beneficiaries),
+            show_default=f"{Config.sponsors_github_beneficiaries}",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A mapping of users belonging to sponsoring organizations."""),
+    ] = field(default_factory=dict)
 
     github_token: An[
         str,
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.github_token),
-            show_default="`GITHUB_TOKEN` env-var or `github.token-command` config-value",
+            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""A GitHub token. Recommended scopes: `read:user`."""),
+        Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`."""),
     ] = ""
 
-    github_organization_members: An[
+    polar_sponsored_account: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plsa", "--polar-sponsored-account"),
+            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            show_default=f"{Config.sponsors_polar_sponsored_account} or none",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""The sponsored account on Polar."""),
+    ] = ""
+
+    polar_beneficiaries: An[
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghom", "--github-organization-members"),
-            default=FromConfig(Config.github_organization_members),
-            show_default=f"{Config.github_organization_members}",
+            long=("--plb", "--polar-beneficiaries"),
+            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
-        Doc("""A mapping of users belonging to sponsoring organizations."""),
+        Doc("""Beneficiaries of Polar sponsors."""),
     ] = field(default_factory=dict)
+
+    polar_token: An[
+        str,
+        cappa.Arg(
+            short=False,
+            long=("--plt", "--polar-token"),
+            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`."""),
+    ] = ""
+
+    minimum_amount: An[
+        int,
+        cappa.Arg(
+            short="-m",
+            long=True,
+            default=FromConfig(Config.sponsors_minimum_amount),
+            show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
+            group=_GROUP_OPTIONS,
+        ),
+        Doc("""Minimum amount to be considered an insider."""),
+    ] = 0
+
+    dry_run: An[
+        bool,
+        cappa.Arg(short=False, long=True, group=_GROUP_OPTIONS),
+        Doc("Display the changes that would be made, without making them."),
+    ] = False
 
     def __call__(self) -> int:
         github_context = GitHub(self.github_token)
         polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
         with github_context as github, polar_context as polar, Console().status("") as status:
             status.update("Fetching sponsors from GitHub")
-            sponsors = github.get_sponsors(self.github_organization_members, exclude_private=self.public)
+            sponsors = github.get_sponsors()
             if polar:
                 status.update("Fetching sponsors from Polar")
-                sponsors.merge(polar.get_sponsors(exclude_private=self.public))
-            status.update(f"Fetching issues from GitHub{' and Polar' if isinstance(polar, Polar) else ''}")
-            backlog = get_backlog(
-                self.backlog_namespaces,
-                github=github,
-                polar=polar,
-                sponsors=sponsors,
-                issue_labels=set(self.issue_labels),
+                sponsors.merge(polar.get_sponsors())
+            status.update("Consolidating sponsors beneficiaries")
+            github.consolidate_beneficiaries(
+                sponsors,
+                {"github": self.github_beneficiaries, "polar": self.polar_beneficiaries},
             )
-        if self.sort:
-            status.update("Sorting issues")
-            backlog.sort(*self.sort)
-        print_backlog(backlog, self.issue_labels, limit=self.limit)
+            github.sync_team(
+                self.insiders_team,
+                sponsors=sponsors,
+                min_amount=self.minimum_amount,
+                include_users=set(self.include_users),
+                exclude_users=set(self.exclude_users),
+                dry_run=self.dry_run,
+            )
         return 0
 
 
@@ -1125,7 +1438,7 @@ class CommandMain:
         return CommandMain._CONFIG
 
     subcommand: An[
-        CommandProject | CommandPyPI | CommandIndex | CommandBacklog | CommandTeam,
+        CommandBacklog | CommandIndex | CommandProject | CommandSponsors,
         cappa.Subcommand(group=_GROUP_SUBCOMMANDS),
         Doc("The selected subcommand."),
     ]

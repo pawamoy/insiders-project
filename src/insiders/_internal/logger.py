@@ -8,7 +8,8 @@ import sys
 import time
 from contextlib import closing, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING
+from typing import Annotated as An
 
 from loguru import logger
 from typing_extensions import Doc
@@ -21,28 +22,16 @@ if TYPE_CHECKING:
     from loguru import Record
 
 
-def double_brackets(message: str) -> str:
-    """Double `{` and `}` in log messages to prevent formatting errors.
-
-    Parameters:
-        message: The message to transform.
-
-    Returns:
-        The updated message.
-    """
+def double_brackets(message: An[str, Doc("The message to transform.")]) -> An[str, Doc("The updated message.")]:
+    """Double `{` and `}` in log messages to prevent formatting errors."""
     return message.replace("{", "{{").replace("}", "}}")
 
 
-def run(*args: str | Path, **kwargs: Any) -> str:
-    """Run a subprocess, log its standard output and error, return its output.
-
-    Parameters:
-        *args: Command line arguments.
-        **kwargs: Additional arguments passed to [subprocess.Popen][].
-
-    Returns:
-        The process standard output.
-    """
+def run(
+    *args: An[str | Path, Doc("Command line arguments.")],
+    **kwargs: An[Any, Doc("Additional arguments to [subprocess.Popen][].")],
+) -> An[str, Doc("The process standard output.")]:
+    """Run a subprocess, log its standard output and error, return its output."""
     args_str = double_brackets(str(args))
     kwargs_str = double_brackets(str(kwargs))
     logger.debug(f"Running subprocess with args={args_str}, kwargs={kwargs_str}")
@@ -91,12 +80,11 @@ class _TextBuffer(StringIO):
 
 
 @contextmanager
-def redirect_output_to_logging(stdout_level: str = "info", stderr_level: str = "error") -> Iterator[None]:
-    """Redirect standard output and error to logging.
-
-    Yields:
-        Nothing.
-    """
+def redirect_output_to_logging(
+    stdout_level: An[str, Doc("Log level for standard output.")] = "info",
+    stderr_level: An[str, Doc("Log level for standard error.")] = "error",
+) -> Iterator[None]:
+    """Redirect standard output and error to logging."""
     with (
         closing(_TextBuffer(getattr(logger, stdout_level))) as new_stdout,
         closing(_TextBuffer(getattr(logger, stderr_level))) as new_stderr,
@@ -106,24 +94,19 @@ def redirect_output_to_logging(stdout_level: str = "info", stderr_level: str = "
         yield
 
 
-def log_captured(text: str, level: str = "info", pkg: str | None = None) -> None:
-    """Log captured text.
-
-    Parameters:
-        text: The text to split and log.
-        level: The log level to use.
-    """
+def log_captured(
+    text: An[str, Doc("The text to split and log.")],
+    level: An[str, Doc("The log level to use.")] = "info",
+    pkg: An[str | None, Doc("Extra `pkg` log metadata.")] = None,
+) -> None:
+    """Log captured text."""
     log = getattr(logger, level)
     for line in text.splitlines(keepends=False):
         log(double_brackets(line), pkg=pkg)
 
 
-def tail(log_file: str) -> None:
-    """Tail a log file.
-
-    Parameters:
-        log_file: The log file to tail.
-    """
+def tail(log_file: An[str, Doc("The log file to tail.")]) -> None:
+    """Tail a log file."""
     with open(log_file) as file:
         try:
             while True:
@@ -201,12 +184,12 @@ intercept_handler = _InterceptHandler()
 
 
 def configure_logging(
-    level: Annotated[str, Doc("Log level (name).")],
-    path: Annotated[str | Path | None, Doc("Log file path.")] = None,
+    level: An[str, Doc("Log level (name).")],
+    path: An[str | Path | None, Doc("Log file path.")] = None,
     *,
-    include: Annotated[tuple[str, ...], Doc("List of package names for which to show logs.")] = (),
-    exclude: Annotated[tuple[str, ...], Doc("List of package names for which to hide logs.")] = (),
-    downgrade: Annotated[
+    include: An[tuple[str, ...], Doc("List of package names for which to show logs.")] = (),
+    exclude: An[tuple[str, ...], Doc("List of package names for which to hide logs.")] = (),
+    downgrade: An[
         tuple[str, ...],
         Doc(
             """

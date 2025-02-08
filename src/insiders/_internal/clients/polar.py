@@ -9,10 +9,10 @@ from typing_extensions import Doc
 
 from insiders._internal.clients import Client
 from insiders._internal.logger import logger
-from insiders._internal.models import Issue, Sponsors, Sponsorship, User
+from insiders._internal.models import Account, Issue, Sponsors, Sponsorship
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable
 
     from insiders._internal.models import IssueDict
 
@@ -35,12 +35,7 @@ class Polar(Client):
             },
         )
 
-    def get_sponsors(
-        self,
-        org_members_map: Mapping[str, Iterable[str]] | None = None,  # noqa: ARG002
-        *,
-        exclude_private: bool = False,  # noqa: ARG002
-    ) -> An[Sponsors, Doc("Sponsors data.")]:
+    def get_sponsors(self, *, exclude_private: bool = False) -> An[Sponsors, Doc("Sponsors data.")]:  # noqa: ARG002
         """Get Polar sponsorships."""
         logger.debug("Fetching sponsors from Polar.")
         sponsorships = []
@@ -72,14 +67,14 @@ class Polar(Client):
                 continue
 
             # Determine account.
-            account = User(
-                name=item["user"]["public_name"],
-                image=item["user"]["avatar_url"],
-                url=f"https://polar.sh/{item['user']['public_name']}",
+            # This requires going on Polar and setting correct metadata.
+            customer_name = item["customer"]["name"]
+            github_username = item["customer"]["metadata"].get("github_username")
+            account = Account(
+                name=customer_name or github_username,
+                image=item["customer"]["avatar_url"],
+                url=f"https://polar.sh/{customer_name}",
                 platform="polar",
-                platform_names={
-                    "github": item["user"]["github_username"],
-                },
             )
             logger.debug(f"Found user: @{account.name}")
 
@@ -100,7 +95,7 @@ class Polar(Client):
     def get_issues(
         self,
         github_accounts: An[Iterable[str], Doc("GitHub accounts to fetch issues from.")],
-        known_github_users: An[Iterable[User] | None, Doc("Known GitHub user accounts.")] = None,
+        known_github_users: An[Iterable[Account] | None, Doc("Known GitHub user accounts.")] = None,
     ) -> An[IssueDict, Doc("Issues data.")]:
         """Get issues from Polar."""
         page = 1
@@ -133,7 +128,7 @@ class Polar(Client):
                 continue
             account_id = item["author"]["login"].removesuffix("[bot]")
             if account_id not in known_users:
-                known_users[account_id] = User(name=account_id, platform="github")
+                known_users[account_id] = Account(name=account_id, platform="github")
             account = known_users[account_id]
 
             repository_name = f"{item['repository']['organization']['name']}/{item['repository']['name']}"

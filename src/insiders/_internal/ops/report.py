@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Annotated as An
 
 from typing_extensions import Doc
 
-from insiders._internal.models import Org, Sponsorship
+if TYPE_CHECKING:
+    from insiders._internal.models import Sponsorship
 
 
 def update_numbers_file(
@@ -39,7 +41,7 @@ def update_sponsors_file(
                     "name": sponsorship.account.name,
                     "image": sponsorship.account.image,
                     "url": sponsorship.account.url,
-                    "org": isinstance(sponsorship.account, Org),
+                    "org": sponsorship.account.is_org,
                 }
                 for sponsorship in sponsorships
                 if not sponsorship.private or not exclude_private

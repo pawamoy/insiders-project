@@ -6,7 +6,6 @@ from typing import Annotated as An
 from typing_extensions import Doc, Self
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
     from types import TracebackType
 
     import httpx
@@ -32,11 +31,5 @@ class Client:
         """Exit context manager."""
         self.http_client.__exit__(exc_type, exc_value, traceback)
 
-    def get_sponsors(
-        self,
-        org_members_map: An[
-            Mapping[str, Iterable[str]] | None,
-            Doc("A mapping of organization name to members."),
-        ] = None,
-    ) -> Sponsors:
+    def get_sponsors(self, *, exclude_private: bool = False) -> Sponsors:
         raise NotImplementedError("Not implemented")

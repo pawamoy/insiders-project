@@ -54,7 +54,7 @@ def render_parser(command: cappa.Command, title: str, page: str, heading_level: 
                 default_format="{default}",
             )
             if default:
-                default = re.sub(r"(`(project|github|pypi|backlog|index|polar|team)\.[^`]+`)", _repl_config, default)
+                default = re.sub(r"(`(backlog|index|project|sponsors)\.[^`]+`)", _repl_config, default)
                 line += default
             result.append(line)
         result.append("")
@@ -77,4 +77,3 @@ render_parser(command, "insiders", "index.md")
 
 with mkdocs_gen_files.open("cli/SUMMARY.md", "w") as nav_file:
     nav_file.writelines(nav.build_literate_nav())
-    print("\n".join(nav.build_literate_nav()))

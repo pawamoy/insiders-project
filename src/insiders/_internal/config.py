@@ -49,89 +49,138 @@ def config_field(key: str, transform: str | None = None) -> Unset:
 class Config:
     """Configuration for the insiders project."""
 
-    # Sponsors fields.
-    sponsors_minimum_amount: int | Unset = config_field("sponsors.minimum-amount")
-    """Minimum sponsorship amount to be considered an insider."""
-
-    # Backlog fields.
+    # ----------------------------------------------------------------------- #
+    # Backlog fields.                                                         #
+    # ----------------------------------------------------------------------- #
     backlog_namespaces: list[str] | Unset = config_field("backlog.namespaces")
     """GitHub namespaces to fetch issues from."""
+
     backlog_sort: list[Callable] | Unset = config_field("backlog.sort", transform="_eval_sort")
     """Sort strategies to apply to the backlog."""
+
     backlog_limit: int | Unset = config_field("backlog.limit")
     """Limit the number of displayed issues."""
+
     backlog_issue_labels: dict[str, str] | Unset = config_field("backlog.issue-labels")
     """Map of label names to their display value (emojis, typically)."""
 
-    # GitHub fields.
-    github_token_command: str | Unset = config_field("github.token-command")
-    """Command to obtain a GitHub token."""
-    github_organization_members: dict[str, set[str]] | Unset = config_field("github.organization-members")
-    """Map of organization names to their members."""
-    github_project_namespace: str | Unset = config_field("github.project-namespace")
-    """GitHub namespace to create public projects in."""
-    github_insiders_project_namespace: str | Unset = config_field("github.insiders-project-namespace")
-    """GitHub namespace to create insiders projects in."""
-    github_username: str | Unset = config_field("github.username")
-    """GitHub username to use for operations."""
-    github_insiders_team: str | Unset = config_field("github.insiders-team")
-    """GitHub team to add insiders to."""
-    github_sponsored_account: str | Unset = config_field("github.sponsored-account")
-    """GitHub account to use for sponsored operations."""
-    github_include_users: set[str] | Unset = config_field("github.include-users")
-    """GitHub users to always include in the insiders team (even non-sponsors)."""
-    github_exclude_users: set[str] | Unset = config_field("github.exclude-users")
-    """GitHub users to never include in the insiders team (even sponsors)."""
+    backlog_github_token_command: str | Unset = config_field("backlog.github-token-command")
+    """Command to obtain a GitHub token for the backlog."""
 
-    # Project fields.
-    project_copier_template: str | Unset = config_field("project.copier-template")
-    """Copier template to generate new projects with."""
-    project_copier_template_answers: dict[str, str] | Unset = config_field("project.copier-template-answers")
-    """Copier template answers to use when generating a project."""
-    project_register_on_pypi: bool | Unset = config_field("project.register-on-pypi")
-    """Whether to register new projects on PyPI after creating them."""
-    project_directory: str | Unset = config_field("project.directory")
-    """Directory in which to clone created public projects."""
-    project_insiders_directory: str | Unset = config_field("project.insiders-directory")
-    """Directory in which to clone created private projects."""
-    project_post_creation_command: str | list[str] | Unset = config_field("project.post-creation-command")
-    """Command to run after creating a project."""
+    @property
+    def backlog_github_token(self) -> str | Unset:
+        """Get the GitHub token for backlog operations."""
+        if isinstance(self.backlog_github_token_command, Unset):
+            return self.backlog_github_token_command
+        return subprocess.getoutput(self.backlog_github_token_command)  # noqa: S605
 
-    # PyPI fields.
-    pypi_username: str | Unset = config_field("pypi.username")
-    """PyPI username to use for operations."""
+    backlog_polar_token_command: str | Unset = config_field("backlog.polar-token-command")
+    """Command to obtain a Polar token for the backlog."""
 
-    # Index fields.
-    index_distributions_directory: str | Unset = config_field("index.distributions-directory")
-    """Directory to store generated Python project distributions."""
-    index_sources_directory: str | Unset = config_field("index.sources-directory")
-    """Directory to store project sources (cloned repositories)."""
+    @property
+    def backlog_polar_token(self) -> str | Unset:
+        """Get the Polar token for backlog operations."""
+        if isinstance(self.backlog_polar_token_command, Unset):
+            return self.backlog_polar_token_command
+        return subprocess.getoutput(self.backlog_polar_token_command)  # noqa: S605
+
+    # ----------------------------------------------------------------------- #
+    # Index fields.                                                           #
+    # ----------------------------------------------------------------------- #
     index_url: str | Unset = config_field("index.url")
     """URL of the index server."""
+
     index_start_in_background: bool | Unset = config_field("index.start-in-background")
     """Whether to start the index server in the background."""
+
+    index_distributions_directory: str | Unset = config_field("index.distributions-directory")
+    """Directory to store generated Python project distributions."""
+
+    index_sources_directory: str | Unset = config_field("index.sources-directory")
+    """Directory to store project sources (cloned repositories)."""
+
     index_log_path: str | Unset = config_field("index.log-path")
     """Where to write the index server logs to."""
 
-    # Polar fields.
-    polar_token_command: str | Unset = config_field("polar.token-command")
-    """Command to obtain a Polar token."""
-    polar_sponsored_account: str | Unset = config_field("polar.sponsored-account")
-    """Polar account to use for sponsored operations."""
+    # ----------------------------------------------------------------------- #
+    # Project fields.                                                         #
+    # ----------------------------------------------------------------------- #
+    project_github_username: str | Unset = config_field("project.github-username")
+    """GitHub username to use for operations."""
+
+    project_namespace: str | Unset = config_field("project.namespace")
+    """GitHub namespace to create public projects in."""
+
+    project_insiders_namespace: str | Unset = config_field("project.insiders-namespace")
+    """GitHub namespace to create insiders projects in."""
+
+    project_directory: str | Unset = config_field("project.directory")
+    """Directory in which to clone created public projects."""
+
+    project_insiders_directory: str | Unset = config_field("project.insiders-directory")
+    """Directory in which to clone created private projects."""
+
+    project_register_on_pypi: bool | Unset = config_field("project.register-on-pypi")
+    """Whether to register new projects on PyPI after creating them."""
+
+    project_pypi_username: str | Unset = config_field("project.pypi-username")
+    """PyPI username to use when registering projects on PyPI."""
+
+    project_post_creation_command: str | list[str] | Unset = config_field("project.post-creation-command")
+    """Command to run after creating a project."""
+
+    project_copier_template: str | Unset = config_field("project.copier-template")
+    """Copier template to generate new projects with."""
+
+    project_copier_template_answers: dict[str, str] | Unset = config_field("project.copier-template-answers")
+    """Copier template answers to use when generating a project."""
+
+    # ----------------------------------------------------------------------- #
+    # Sponsors fields.                                                        #
+    # ----------------------------------------------------------------------- #
+    sponsors_minimum_amount: int | Unset = config_field("sponsors.minimum-amount")
+    """Minimum sponsorship amount to be considered an insider."""
+
+    sponsors_github_sponsored_account: str | Unset = config_field("sponsors.github-sponsored-account")
+    """GitHub account receiving sponsorships."""
+
+    sponsors_github_token_command: str | Unset = config_field("sponsors.github-token-command")
+    """Command to obtain a GitHub token."""
 
     @property
-    def github_token(self) -> str | Unset:
-        """Get the GitHub token."""
-        if isinstance(self.github_token_command, Unset):
-            return self.github_token_command
-        return subprocess.getoutput(self.github_token_command)  # noqa: S605
+    def sponsors_github_token(self) -> str | Unset:
+        """Get the GitHub token for sponsors operations."""
+        if isinstance(self.sponsors_github_token_command, Unset):
+            return self.sponsors_github_token_command
+        return subprocess.getoutput(self.sponsors_github_token_command)  # noqa: S605
+
+    sponsors_github_beneficiaries: dict[str, set[str]] | Unset = config_field("sponsors.github-beneficiaries")
+    """Map of GitHub sponsors to their beneficiaries."""
+
+    sponsors_polar_sponsored_account: str | Unset = config_field("sponsors.polar-sponsored-account")
+    """Polar account receiving sponsorships."""
+
+    sponsors_polar_token_command: str | Unset = config_field("sponsors.polar-token-command")
+    """Command to obtain a Polar token for the sponsors."""
 
     @property
-    def polar_token(self) -> str | Unset:
-        """Get the Polar token."""
-        if isinstance(self.polar_token_command, Unset):
-            return self.polar_token_command
-        return subprocess.getoutput(self.polar_token_command)  # noqa: S605
+    def sponsors_polar_token(self) -> str | Unset:
+        """Get the Polar token for sponsors operations."""
+        if isinstance(self.sponsors_polar_token_command, Unset):
+            return self.sponsors_polar_token_command
+        return subprocess.getoutput(self.sponsors_polar_token_command)  # noqa: S605
+
+    sponsors_polar_beneficiaries: dict[str, set[str]] | Unset = config_field("sponsors.polar-beneficiaries")
+    """Map of Polar sponsors to their beneficiaries."""
+
+    sponsors_insiders_team: str | Unset = config_field("sponsors.insiders-team")
+    """GitHub team to add insiders to."""
+
+    sponsors_include_users: set[str] | Unset = config_field("sponsors.include-users")
+    """GitHub users to always include in the insiders team (even non-sponsors)."""
+
+    sponsors_exclude_users: set[str] | Unset = config_field("sponsors.exclude-users")
+    """GitHub users to never include in the insiders team (even sponsors)."""
 
     @overload
     @staticmethod

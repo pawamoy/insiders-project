@@ -9,7 +9,7 @@ from typing_extensions import Doc
 
 from insiders._internal.clients import Client
 from insiders._internal.logger import logger
-from insiders._internal.models import Issue, IssueDict, Org, Sponsors, Sponsorship, User
+from insiders._internal.models import Account, Beneficiary, Issue, IssueDict, Sponsors, Sponsorship
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -113,6 +113,17 @@ class GitHub(Client):
             headers={"Authorization": f"Bearer {token}"},
         )
 
+    def is_org(
+        self,
+        account: An[str, Doc("An account name.")],
+    ) -> An[bool, Doc("Whether the account is an organization.")]:
+        """Check if an account is an organization."""
+        response = self.http_client.get(f"/users/{account}", params={"fields": "type"})
+        response.raise_for_status()
+        response_data = response.json()
+        return response_data["type"] == "Organization"
+
+    # TODO: We could possibly cache this.
     def get_org_members(
         self,
         org: An[str, Doc("The organization name.")],
@@ -133,17 +144,13 @@ class GitHub(Client):
 
     def get_sponsors(
         self,
-        org_members_map: An[
-            Mapping[str, Iterable[str]] | None,
-            Doc("A mapping of organization name to members."),
-        ] = None,
         *,
         exclude_private: bool = False,
     ) -> An[Sponsors, Doc("Sponsors data.")]:
         """Get GitHub sponsors."""
         logger.debug("Fetching sponsors from GitHub.")
         sponsorships = []
-        user_accounts = {}
+        accounts = {}
         cursor = "null"
 
         while True:
@@ -163,20 +170,17 @@ class GitHub(Client):
                     continue
 
                 # Determine account.
-                account: User | Org
                 account_data = {
                     "name": item["sponsorEntity"]["login"],
                     "image": item["sponsorEntity"]["avatarUrl"],
                     "url": item["sponsorEntity"]["url"],
                     "platform": "github",
+                    "is_org": item["sponsorEntity"]["__typename"].lower() == "organization",
                 }
-                if item["sponsorEntity"]["__typename"].lower() == "organization":
-                    account = Org(**account_data)
-                    logger.debug(f"Found org: @{account.name}")
-                else:
-                    account = User(**account_data)
-                    logger.debug(f"Found user: @{account.name}")
-                    user_accounts[account.name] = account
+
+                account = Account(**account_data)
+                logger.debug(f"Found {'org' if account.is_org else 'user'}: @{account.name}")
+                accounts[account.name] = account
 
                 # Record sponsorship.
                 sponsorships.append(
@@ -194,25 +198,83 @@ class GitHub(Client):
             else:
                 break
 
-        # Consolidate data.
-        logger.debug(f"Processing {len(sponsorships)} sponsorships from GitHub.")
-        for sponsorship in sponsorships:
-            # Accounts link back to their sponsorship.
-            sponsorship.account.sponsorships.append(sponsorship)
-            # Add users as org members, link their org sponsorship.
-            if sponsorship.account.is_org and org_members_map and sponsorship.account.name in org_members_map:
-                org_members = org_members_map[sponsorship.account.name]
-                actual_org_members = self.get_org_members(sponsorship.account.name)
-                for org_member in org_members:
-                    if org_member not in user_accounts:
-                        user_accounts[org_member] = User(name=org_member, platform="github")
-                    org_member_account = user_accounts[org_member]
-                    verified = org_member in actual_org_members
-                    sponsorship.account.users[org_member] = (org_member_account, verified)  # type: ignore[union-attr]
-                    logger.debug(f"Found org member: @{sponsorship.account.name}/{org_member} (verified: {verified})")
-                    org_member_account.sponsorships.append(sponsorship)
-
         return Sponsors(sponsorships=sponsorships)
+
+    def _add_org_members(
+        self,
+        sponsorship: Sponsorship,
+        org: Account,
+        accounts: dict[str, Account],
+        grant: bool | None = None,
+    ) -> None:
+        members = self.get_org_members(org.name)
+        for member in members:
+            if member not in accounts:
+                accounts[member] = Account(name=member, platform="github", is_org=False)
+            user = accounts[member]
+            user.sponsorships.append(sponsorship)
+            sponsorship.beneficiaries[user.name] = Beneficiary(user=user, grant=grant)
+
+    def consolidate_beneficiaries(
+        self,
+        sponsors: Sponsors,
+        beneficiaries: Mapping[str, Mapping[str, Iterable[str | Mapping[str, str | bool]]]],
+    ) -> None:
+        github_accounts = {account.name: account for account in sponsors.accounts if account.platform == "github"}
+        for sponsorship in sponsors.sponsorships:
+            # Always add sponsorship account as beneficiary, expanding organizations.
+            sponsorship.account.sponsorships.append(sponsorship)
+            if sponsorship.account.platform == "github":
+                if sponsorship.account.is_org:
+                    self._add_org_members(sponsorship, sponsorship.account, github_accounts, grant=None)
+                else:
+                    sponsorship.beneficiaries[sponsorship.account.name] = Beneficiary(
+                        user=sponsorship.account,
+                        grant=None,
+                    )
+
+            for beneficiary_spec in beneficiaries.get(sponsorship.account.platform, {}).get(
+                sponsorship.account.name,
+                (),
+            ):
+                if isinstance(beneficiary_spec, dict):
+                    account_name = beneficiary_spec["account"]
+                    grant = beneficiary_spec.get("grant", None)
+                else:
+                    account_name = beneficiary_spec
+                    grant = None
+
+                if account_name.startswith("&"):
+                    # Organization.
+                    org_name = account_name[1:]
+                    if org_name not in github_accounts:
+                        github_accounts[org_name] = Account(name=org_name, platform="github", is_org=True)
+                    org = github_accounts[org_name]
+                    org.sponsorships.append(sponsorship)
+                    self._add_org_members(sponsorship, org, github_accounts)
+
+                elif account_name in sponsorship.beneficiaries:
+                    # Update grant status.
+                    if grant is not None:
+                        sponsorship.beneficiaries[account_name].grant = grant
+                else:
+                    # Add new beneficiary.
+                    if account_name not in github_accounts:
+                        github_accounts[account_name] = Account(name=account_name, platform="github", is_org=False)
+                    user = github_accounts[account_name]
+                    user.sponsorships.append(sponsorship)
+                    sponsorship.beneficiaries[user.name] = Beneficiary(user=user, grant=grant)
+
+            if any(beneficiary.grant is True for beneficiary in sponsorship.beneficiaries.values()):
+                # If any beneficiary was explicited granted access, set grant flag to false for the rest.
+                for beneficiary in sponsorship.beneficiaries.values():
+                    if beneficiary.grant is None:
+                        beneficiary.grant = False
+            else:
+                # Set grant flag to true for the rest.
+                for beneficiary in sponsorship.beneficiaries.values():
+                    if beneficiary.grant is None:
+                        beneficiary.grant = True
 
     def get_team_members(
         self,
@@ -312,7 +374,7 @@ class GitHub(Client):
     def get_issues(
         self,
         github_accounts: An[Iterable[str], Doc("A list of GitHub account names.")],
-        known_github_users: An[Iterable[User] | None, Doc("Known user accounts.")] = None,
+        known_github_users: An[Iterable[Account] | None, Doc("Known user accounts.")] = None,
         *,
         allow_labels: An[set[str] | None, Doc("A set of labels to keep.")] = None,
     ) -> An[IssueDict, Doc("A dictionary of issues.")]:
@@ -346,7 +408,7 @@ class GitHub(Client):
                 labels = {label["name"] for label in issue["labels"]["nodes"] if label["name"] in allow_labels}
 
                 if author_id not in known_users:
-                    known_users[author_id] = User(name=author_id, platform="github")
+                    known_users[author_id] = Account(name=author_id, platform="github")
                 author = known_users[author_id]
 
                 upvotes = set()
@@ -354,7 +416,7 @@ class GitHub(Client):
                     if reaction["content"] == "THUMBS_UP":
                         upvoter_id = reaction["user"]["login"]
                         if upvoter_id not in known_users:
-                            known_users[upvoter_id] = User(name=upvoter_id, platform="github")
+                            known_users[upvoter_id] = Account(name=upvoter_id, platform="github")
                         upvoter = known_users[upvoter_id]
                         upvotes.add(upvoter)
 
@@ -386,13 +448,17 @@ class GitHub(Client):
         min_amount: An[int | None, Doc("Minimum amount to be considered a sponsor.")] = None,
         include_users: An[set[str] | None, Doc("Users to always grant access to.")] = None,
         exclude_users: An[set[str] | None, Doc("Users to never grant access to.")] = None,
-        org_users: An[dict[str, set[str]] | None, Doc("Users to grant access to based on org.")] = None,
         dry_run: An[bool, Doc("Display changes without applying them.")] = False,
     ) -> None:
         """Sync sponsors with members of a GitHub team."""
-        sponsors = sponsors or self.get_sponsors(org_users)
+        sponsors = sponsors or self.get_sponsors()
 
-        eligible_users = {user.name for user in sponsors.users if not min_amount or user.tier_sum >= min_amount}
+        beneficiaries = sponsors.beneficiaries.values()
+        eligible_users = {
+            benef.user.name
+            for benef in beneficiaries
+            if benef.grant and (not min_amount or benef.user.tier_sum >= min_amount)
+        }
         if include_users:
             eligible_users |= include_users
         if exclude_users:
