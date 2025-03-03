@@ -7,7 +7,7 @@ import cappa
 from cappa.base import collect
 from cappa.help import generate_arg_groups
 
-from insiders._internal.cli import CommandMain, CommandBacklog, CommandIndex, CommandProject, CommandSponsors
+from insiders._internal.cli import CommandBacklog, CommandIndex, CommandMain, CommandProject, CommandSponsors
 
 
 def _repl_config(match: re.Match) -> str:
