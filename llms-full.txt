@@ -1,0 +1,4100 @@
+# insiders
+
+Manage your Insiders projects.
+
+## Installation
+
+```
+pip install insiders
+
+```
+
+With [`uv`](https://docs.astral.sh/uv/):
+
+```
+uv tool install insiders
+
+```
+
+## Usage
+
+The `insiders` tool provides several commands that will help you manage projects based on a sponsorware strategy.
+
+- `insiders backlog`: Print a backlog of issues, ordered using your own defined criteria
+- `insiders index`: Serve a PyPI-like index locally, and upload private Insiders packages to it.
+- `insiders project`: Bootstrap public/insiders project pairs on GitHub.
+- `insiders sponsors`: Manage your sponsors (grant/revoke access to private team, etc.).
+
+Run `insiders -h` to see where the configuration file is found. Example configuration:
+
+```
+# --------------------------------------------------------------------------- #
+# Backlog configuration.                                                      #
+# --------------------------------------------------------------------------- #
+# The `backlog` command prints a list of issues from GitHub repositories.
+# It is used to keep track of what needs to be done, and to prioritize tasks.
+[backlog]
+
+# GitHub namespaces (user accounts / organizations) from which to fetch issues.
+namespaces = ["pawamoy", "mkdocstrings"]
+
+# How many issues to display when showing the backlog.
+limit = 30
+
+# Sorting criteria, in order of importance.
+# TODO: Document syntax and available options.
+sort = [
+    "label('bug')",
+    "label('unconfirmed')",
+    "label('docs')",
+    "label('refactor')",
+    "min_sponsorships(50)",
+    "min_upvotes(2)",
+    "label('insiders')",
+    "repository('mkdocstrings/*')",
+    "created",
+]
+
+# A shell command to get your GitHub token.
+github-token-command = "command to echo token"
+
+# A map of labels to emojis, for shorter display in the backlog.
+[backlog.issue-labels]
+bug = "🐞"
+docs = "📘"
+feature = "✨"
+insiders = "🔒"
+unconfirmed = "❔"
+
+# --------------------------------------------------------------------------- #
+# Index configuration.                                                        #
+# --------------------------------------------------------------------------- #
+# The `index` command lets you serve a PyPI-like index locally,
+# and upload Insiders versions of projects to it,
+# so that you can install them transparently as dependencies.
+# You can configure a remote index too, instead of a locally-served one.
+[index]
+
+# The URL of the index, local or remote.
+url = "http://localhost:31411"
+
+# Whether to start the index server in the background (when serving locally).
+start-in-background = true
+
+# The path to the log file of the index server (when serving locally).
+log-path = "/tmp/insiders-index.log"
+
+# --------------------------------------------------------------------------- #
+# Projects configuration.                                                     #
+# --------------------------------------------------------------------------- #
+# The `project` command lets you create public and private projects on GitHub.
+# It supports Copier templates to generate the initial project structure.
+# It can also register projects on PyPI, and run post-creation commands.
+# Created projects will be cloned in the specified directories.
+[project]
+
+# If your Insiders organization is named "your-username-insiders",
+# you can specify your GitHub username instead of both the public
+# and insiders namespaces in which projects will be created.
+github-username = "pawamoy"
+
+# Explicitly specify the public and insiders namespaces.
+namespace = "pawamoy"
+insiders-namespace = "pawamoy-insiders"
+
+# Where to clone the created projects (Git repositories).
+directory = "~/data/dev"
+insiders-directory = "~/data/dev/insiders"
+
+# Whether to register projects on PyPI.
+register-on-pypi = false
+pypi-username = "pawamoy"
+
+# Post-creation commands to run after creating a project.
+# The command only runs in the public project, not the private one.
+post-creation-command = [
+    "python",
+    "scripts/make",
+    "setup",
+    "changelog",
+    "release",
+    "version=0.1.0",
+]
+
+# A Copier template to generate new projects from.
+copier-template = "gh:pawamoy/copier-uv"
+
+# A mapping of template questions to answers.
+# TODO: Document syntax and available options.
+[project.copier-template-answers]
+project_name = "{public_name}"
+project_description = "{description}"
+author_username = "pawamoy"
+repository_namespace = "{public_namespace}"
+repository_name = "{public_name}"
+insiders = true
+insiders_repository_name = "{insiders_name}"
+
+# --------------------------------------------------------------------------- #
+# Sponsors configuration.                                                     #
+# --------------------------------------------------------------------------- #
+# The `sponsors` command lets you list sponsors from different platforms,
+# show detailed information about a user,
+# and synchronize your sponsors' access to a GitHub team,
+# where your private projects are made available.
+[sponsors]
+
+# Your GitHub account receiving sponsorships.
+github-sponsored-account = "pawamoy"
+
+# A shell command to get your GitHub token.
+github-token-command = "command to echo token"
+
+# Your Polar account receiving sponsorships.
+polar-sponsored-account = "pawamoy"
+
+# A shell command to get your Polar token.
+polar-token-command = "command to echo token"
+
+# The minimum amount a sponsor must pledge to be considered an insider,
+# granting them access to your private projects.
+minimum-amount = 10
+
+# The GitHub team to which insiders are invited.
+insiders-team = "pawamoy-insiders/insiders"
+
+# A list of users to always include into the insiders team.
+include-users = [
+    "pawamoy",  # Myself.
+]
+
+# A list of users to always exclude from the insiders team.
+exclude-users = []
+
+# A map of GitHub sponsors to their beneficiaries.
+# Beneficiaries are users/organizations who get voting power
+# and are optionally granted access to your Insiders team.
+# TODO: Document supported values.
+[sponsors.github-beneficiaries]
+some-github-account = [
+    "some-github-user",
+    "&some-github-org",
+]
+
+# A map of Polar sponsors to their beneficiaries.
+# Beneficiaries are users/organizations who get voting power
+# and are optionally granted access to your Insiders team.
+# TODO: Document supported values.
+[sponsors.polar-beneficiaries]
+
+```
+
+More documentation will be added later, for now ask @pawamoy for details (see where I can be reached on my profile) 🙂
+
+# insiders
+
+insiders package.
+
+Manage your Insiders projects.
+
+Classes:
+
+- **`Account`** – An account.
+- **`Backlog`** – Backlog of issues.
+- **`Beneficiary`** – A sponsorship beneficiary: a user, grant bit, and optional org.
+- **`CommandBacklog`** – Command to list the backlog of issues.
+- **`CommandIndex`** – Command to manage the local index.
+- **`CommandIndexAdd`** – Command to add a repository to the watched repositories.
+- **`CommandIndexList`** – Command to list the watched repositories.
+- **`CommandIndexLogs`** – Command to show the server logs.
+- **`CommandIndexRemove`** – Command to remove a repository and its distributions (if served locally).
+- **`CommandIndexStart`** – Command to start the server.
+- **`CommandIndexStatus`** – Command to show the server status.
+- **`CommandIndexStop`** – Command to stop the server.
+- **`CommandIndexUpdate`** – Command to update watched projects.
+- **`CommandMain`** – Command to manage your Insiders projects.
+- **`CommandProject`** – Command to manage projects on GitHub and locally.
+- **`CommandProjectCheck`** – Command to check GitHub projects.
+- **`CommandProjectCreate`** – Command to create public/insiders repositories.
+- **`CommandProjectPyPIRegister`** – Command to register a project name on PyPI.
+- **`CommandSponsors`** – Command to manage sponsors.
+- **`CommandSponsorsList`** – Command to list sponsors.
+- **`CommandSponsorsShow`** – Command to show details about a sponsor/user.
+- **`CommandSponsorsTeamList`** – Command to list team memberships.
+- **`CommandSponsorsTeamSync`** – Command to sync team memberships with current sponsors.
+- **`Config`** – Configuration for the insiders project.
+- **`GitHub`** – GitHub client.
+- **`Index`** – Index of repositories.
+- **`Issue`** – An issue.
+- **`Polar`** – Polar client.
+- **`Sponsors`** – Wrapper class for sponsorships.
+- **`Sponsorship`** – A sponsorship.
+- **`Unset`** – A sentinel value for unset configuration options.
+
+Functions:
+
+- **`config_field`** – Get a dataclass field with a TOML key.
+- **`get_backlog`** – Get the backlog.
+- **`main`** – Run the main program.
+- **`new_public_and_insiders_github_projects`** – Create a new Insiders project on GitHub (public and private repositories).
+- **`print_backlog`** – Print the backlog.
+- **`print_sponsors`** – Print the sponsors/sponsorships.
+- **`reserve_pypi`** – Reserve a name on PyPI.
+- **`update_numbers_file`** – Update the file storing sponsorship numbers.
+- **`update_sponsors_file`** – Update the file storing sponsors info.
+
+Attributes:
+
+- **`DEFAULT_CONF_DIR`** (`Path`) – The default configuration directory.
+- **`DEFAULT_CONF_PATH`** (`Path`) – The default configuration file path.
+- **`DEFAULT_DIST_DIR`** (`Path`) – The default index distributions directory
+- **`DEFAULT_INDEX_URL`** (`str`) – The default index URL.
+- **`DEFAULT_PORT`** (`int`) – The default index port.
+- **`DEFAULT_REPO_DIR`** (`Path`) – The default Git repository (clones) cache directory.
+- **`SponsorshipPlatform`** (`TypeAlias`) – The supported sponsorship platforms.
+
+## DEFAULT_CONF_DIR
+
+```
+DEFAULT_CONF_DIR: Path = Path(user_config_dir(_APP_NAME))
+
+```
+
+The default configuration directory.
+
+## DEFAULT_CONF_PATH
+
+```
+DEFAULT_CONF_PATH: Path = DEFAULT_CONF_DIR / "insiders.toml"
+
+```
+
+The default configuration file path.
+
+## DEFAULT_DIST_DIR
+
+```
+DEFAULT_DIST_DIR: Path = Path(
+    user_data_dir(_APP_NAME, _APP_AUTHOR)
+)
+
+```
+
+The default index distributions directory
+
+## DEFAULT_INDEX_URL
+
+```
+DEFAULT_INDEX_URL: str = f'http://localhost:{DEFAULT_PORT}'
+
+```
+
+The default index URL.
+
+## DEFAULT_PORT
+
+```
+DEFAULT_PORT: int = 31411
+
+```
+
+The default index port.
+
+## DEFAULT_REPO_DIR
+
+```
+DEFAULT_REPO_DIR: Path = Path(
+    user_cache_dir(_APP_NAME, _APP_AUTHOR)
+)
+
+```
+
+The default Git repository (clones) cache directory.
+
+## SponsorshipPlatform
+
+```
+SponsorshipPlatform: TypeAlias = Literal['github', 'polar']
+
+```
+
+The supported sponsorship platforms.
+
+## Account
+
+```
+Account(
+    *,
+    name: str,
+    image: str | None = None,
+    url: str | None = None,
+    platform: SponsorshipPlatform,
+    is_org: bool = False,
+    sponsorships: list[Sponsorship] = list(),
+    included: bool = False,
+    excluded: bool = False,
+)
+
+```
+
+An account.
+
+Attributes:
+
+- **`direct_sponsor`** (`bool`) – Return whether the account is a direct sponsor.
+- **`excluded`** (`bool`) – Indicates if the account is excluded from the sponsors list.
+- **`highest_tier`** (`int`) – Return the highest tier amount.
+- **`image`** (`str | None`) – The image URL of the account.
+- **`included`** (`bool`) – Indicates if the account is included in the sponsors list.
+- **`is_org`** (`bool`) – Indicates if the account is an organization.
+- **`is_user`** (`bool`) – Return whether the account is a user.
+- **`name`** (`str`) – The name of the account.
+- **`platform`** (`SponsorshipPlatform`) – The platform of the account.
+- **`sponsorships`** (`list[Sponsorship]`) – List of sponsorships associated with the account
+- **`tier_sum`** (`int`) – Return the sum of all tier amounts.
+- **`url`** (`str | None`) – The URL of the account.
+
+### direct_sponsor
+
+```
+direct_sponsor: bool
+
+```
+
+Return whether the account is a direct sponsor.
+
+### excluded
+
+```
+excluded: bool = False
+
+```
+
+Indicates if the account is excluded from the sponsors list.
+
+### highest_tier
+
+```
+highest_tier: int
+
+```
+
+Return the highest tier amount.
+
+### image
+
+```
+image: str | None = None
+
+```
+
+The image URL of the account.
+
+### included
+
+```
+included: bool = False
+
+```
+
+Indicates if the account is included in the sponsors list.
+
+### is_org
+
+```
+is_org: bool = False
+
+```
+
+Indicates if the account is an organization.
+
+### is_user
+
+```
+is_user: bool
+
+```
+
+Return whether the account is a user.
+
+### name
+
+```
+name: str
+
+```
+
+The name of the account.
+
+### platform
+
+```
+platform: SponsorshipPlatform
+
+```
+
+The platform of the account.
+
+### sponsorships
+
+```
+sponsorships: list[Sponsorship] = field(
+    default_factory=list
+)
+
+```
+
+List of sponsorships associated with the account
+
+### tier_sum
+
+```
+tier_sum: int
+
+```
+
+Return the sum of all tier amounts.
+
+### url
+
+```
+url: str | None = None
+
+```
+
+The URL of the account.
+
+## Backlog
+
+```
+Backlog(*, issues: list[Issue] = list())
+
+```
+
+Backlog of issues.
+
+Classes:
+
+- **`SortStrategy`** –
+
+Methods:
+
+- **`sort`** – Sort the backlog.
+
+Attributes:
+
+- **`issues`** (`list[Issue]`) – A list of issues.
+
+### issues
+
+```
+issues: list[Issue] = field(default_factory=list)
+
+```
+
+A list of issues.
+
+### SortStrategy
+
+Methods:
+
+- **`author_sponsorships`** – Sort by author sponsorships.
+- **`created`** – Sort by creation date.
+- **`label`** – Sort by label presence.
+- **`min_author_sponsorships`** – Sort by minimum author sponsorships.
+- **`min_sponsorships`** – Sort by minimum sponsorships.
+- **`min_upvoters_sponsorships`** – Sort by minimum upvoters sponsorships.
+- **`min_upvotes`** – Sort by minimum upvotes.
+- **`repository`** – Sort by repository.
+- **`sponsorships`** – Sort by sponsorships.
+- **`upvoters_sponsorships`** – Sort by upvoters sponsorships.
+- **`upvotes`** – Sort by upvotes.
+
+#### author_sponsorships
+
+```
+author_sponsorships(
+    *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by author sponsorships.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### created
+
+```
+created(*, reverse: bool = False) -> Callable[[Issue], int]
+
+```
+
+Sort by creation date.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `False` ) – Sort in reverse.
+
+#### label
+
+```
+label(
+    name: str, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by label presence.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### min_author_sponsorships
+
+```
+min_author_sponsorships(
+    amount: int, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by minimum author sponsorships.
+
+Parameters:
+
+- **`amount`** (`int`) – Minimum amount.
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### min_sponsorships
+
+```
+min_sponsorships(
+    amount: int, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by minimum sponsorships.
+
+Parameters:
+
+- **`amount`** (`int`) – Minimum amount.
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### min_upvoters_sponsorships
+
+```
+min_upvoters_sponsorships(
+    amount: int, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by minimum upvoters sponsorships.
+
+Parameters:
+
+- **`amount`** (`int`) – Minimum amount.
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### min_upvotes
+
+```
+min_upvotes(
+    amount: int, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by minimum upvotes.
+
+Parameters:
+
+- **`amount`** (`int`) – Minimum amount.
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### repository
+
+```
+repository(
+    name: str, *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by repository.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### sponsorships
+
+```
+sponsorships(
+    *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by sponsorships.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### upvoters_sponsorships
+
+```
+upvoters_sponsorships(
+    *, reverse: bool = True
+) -> Callable[[Issue], int]
+
+```
+
+Sort by upvoters sponsorships.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+#### upvotes
+
+```
+upvotes(*, reverse: bool = True) -> Callable[[Issue], int]
+
+```
+
+Sort by upvotes.
+
+Parameters:
+
+- **`reverse`** (`bool`, default: `True` ) – Sort in reverse.
+
+### sort
+
+```
+sort(*strats: Callable[[Issue], Any]) -> None
+
+```
+
+Sort the backlog.
+
+## Beneficiary
+
+```
+Beneficiary(*, user: Account, grant: bool | None = None)
+
+```
+
+A sponsorship beneficiary: a user, grant bit, and optional org.
+
+Attributes:
+
+- **`grant`** (`bool | None`) – Whether the user is granted access to Insiders (in addition to getting voting power).
+- **`user`** (`Account`) – The user who benefits from the sponsorship.
+
+### grant
+
+```
+grant: bool | None = None
+
+```
+
+Whether the user is granted access to Insiders (in addition to getting voting power).
+
+### user
+
+```
+user: Account
+
+```
+
+The user who benefits from the sponsorship.
+
+## CommandBacklog
+
+```
+CommandBacklog(
+    *,
+    backlog_namespaces: list[str],
+    issue_labels: dict[str, str] = dict(),
+    limit: int = 0,
+    sort: list[Callable] = list(),
+    public: bool = False,
+    polar_token: str = "",
+    polar_beneficiaries: dict[str, list[str]] = dict(),
+    github_token: str = "",
+    github_beneficiaries: dict[str, list[str]] = dict(),
+)
+
+```
+
+Command to list the backlog of issues.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`backlog_namespaces`** (`list[str]`) – Namespaces to fetch issues from.
+- **`github_beneficiaries`** (`dict[str, list[str]]`) – Beneficiaries of GitHub sponsors.
+- **`github_token`** (`str`) – A GitHub token. Recommended scopes: read:user.
+- **`issue_labels`** (`dict[str, str]`) – Issue labels to keep in issues metadata, and how they are represented.
+- **`limit`** (`int`) – Limit the number of issues to display.
+- **`polar_beneficiaries`** (`dict[str, list[str]]`) – Beneficiaries of Polar sponsors.
+- **`polar_token`** (`str`) – A Polar token. Recommended scopes: user:read, issues:read, subscriptions:read.
+- **`public`** (`bool`) – Only use public sponsorships.
+- **`sort`** (`list[Callable]`) – Sort strategy.
+
+### backlog_namespaces
+
+```
+backlog_namespaces: list[str]
+
+```
+
+Namespaces to fetch issues from.
+
+### github_beneficiaries
+
+```
+github_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of GitHub sponsors.
+
+### github_token
+
+```
+github_token: str = ''
+
+```
+
+A GitHub token. Recommended scopes: `read:user`.
+
+### issue_labels
+
+```
+issue_labels: dict[str, str] = field(default_factory=dict)
+
+```
+
+Issue labels to keep in issues metadata, and how they are represented.
+
+### limit
+
+```
+limit: int = 0
+
+```
+
+Limit the number of issues to display.
+
+### polar_beneficiaries
+
+```
+polar_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of Polar sponsors.
+
+### polar_token
+
+```
+polar_token: str = ''
+
+```
+
+A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`.
+
+### public
+
+```
+public: bool = False
+
+```
+
+Only use public sponsorships.
+
+### sort
+
+```
+sort: list[Callable] = field(default_factory=list)
+
+```
+
+Sort strategy.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndex
+
+```
+CommandIndex(
+    *,
+    subcommand: CommandIndexList
+    | CommandIndexAdd
+    | CommandIndexRemove
+    | CommandIndexUpdate
+    | CommandIndexStart
+    | CommandIndexStatus
+    | CommandIndexStop
+    | CommandIndexLogs,
+)
+
+```
+
+Command to manage the local index.
+
+Attributes:
+
+- **`subcommand`** (`CommandIndexList | CommandIndexAdd | CommandIndexRemove | CommandIndexUpdate | CommandIndexStart | CommandIndexStatus | CommandIndexStop | CommandIndexLogs`) – The selected subcommand.
+
+### subcommand
+
+```
+subcommand: (
+    CommandIndexList
+    | CommandIndexAdd
+    | CommandIndexRemove
+    | CommandIndexUpdate
+    | CommandIndexStart
+    | CommandIndexStatus
+    | CommandIndexStop
+    | CommandIndexLogs
+)
+
+```
+
+The selected subcommand.
+
+## CommandIndexAdd
+
+```
+CommandIndexAdd(
+    *,
+    repositories: list[str],
+    sources_directory: Path = DEFAULT_REPO_DIR,
+    distributions_directory: Path = DEFAULT_DIST_DIR,
+    url: str = DEFAULT_INDEX_URL,
+)
+
+```
+
+Command to add a repository to the watched repositories.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`distributions_directory`** (`Path`) – Directory where the distributions are stored.
+- **`repositories`** (`list[str]`) – List of repositories (GitHub namespace/project or Git URL git@host:repo).
+- **`sources_directory`** (`Path`) – Directory where the sources are stored.
+- **`url`** (`str`) – URL of the index to upload packages to.
+
+### distributions_directory
+
+```
+distributions_directory: Path = DEFAULT_DIST_DIR
+
+```
+
+Directory where the distributions are stored.
+
+### repositories
+
+```
+repositories: list[str]
+
+```
+
+List of repositories (GitHub namespace/project or Git URL git@host:repo).
+
+### sources_directory
+
+```
+sources_directory: Path = DEFAULT_REPO_DIR
+
+```
+
+Directory where the sources are stored.
+
+### url
+
+```
+url: str = DEFAULT_INDEX_URL
+
+```
+
+URL of the index to upload packages to.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexList
+
+```
+CommandIndexList(
+    *,
+    sources_directory: Path = DEFAULT_REPO_DIR,
+    distributions_directory: Path = DEFAULT_DIST_DIR,
+    dists: bool = False,
+    projects: bool = False,
+)
+
+```
+
+Command to list the watched repositories.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`distributions_directory`** (`Path`) – Directory where the distributions are stored.
+- **`dists`** (`bool`) – List distributions.
+- **`projects`** (`bool`) – List projects.
+- **`sources_directory`** (`Path`) – Directory where the sources are stored.
+
+### distributions_directory
+
+```
+distributions_directory: Path = DEFAULT_DIST_DIR
+
+```
+
+Directory where the distributions are stored.
+
+### dists
+
+```
+dists: bool = False
+
+```
+
+List distributions.
+
+### projects
+
+```
+projects: bool = False
+
+```
+
+List projects.
+
+### sources_directory
+
+```
+sources_directory: Path = DEFAULT_REPO_DIR
+
+```
+
+Directory where the sources are stored.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexLogs
+
+```
+CommandIndexLogs()
+
+```
+
+Command to show the server logs.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexRemove
+
+```
+CommandIndexRemove(
+    *,
+    repositories: list[str],
+    sources_directory: Path = DEFAULT_REPO_DIR,
+    distributions_directory: Path = DEFAULT_DIST_DIR,
+)
+
+```
+
+Command to remove a repository and its distributions (if served locally).
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`distributions_directory`** (`Path`) – Directory where the distributions are stored.
+- **`repositories`** (`list[str]`) – List of repository names.
+- **`sources_directory`** (`Path`) – Directory where the sources are stored.
+
+### distributions_directory
+
+```
+distributions_directory: Path = DEFAULT_DIST_DIR
+
+```
+
+Directory where the distributions are stored.
+
+### repositories
+
+```
+repositories: list[str]
+
+```
+
+List of repository names.
+
+### sources_directory
+
+```
+sources_directory: Path = DEFAULT_REPO_DIR
+
+```
+
+Directory where the sources are stored.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexStart
+
+```
+CommandIndexStart(
+    *,
+    sources_directory: Path = DEFAULT_REPO_DIR,
+    distributions_directory: Path = DEFAULT_DIST_DIR,
+    url: str = DEFAULT_INDEX_URL,
+    background: bool = False,
+    log_path: str | None = None,
+)
+
+```
+
+Command to start the server.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`background`** (`bool`) – Run the server in the background.
+- **`distributions_directory`** (`Path`) – Directory where the distributions are stored.
+- **`log_path`** (`str | None`) – Where to write index server logs.
+- **`sources_directory`** (`Path`) – Directory where the sources are stored.
+- **`url`** (`str`) – URL to serve the index at.
+
+### background
+
+```
+background: bool = False
+
+```
+
+Run the server in the background.
+
+### distributions_directory
+
+```
+distributions_directory: Path = DEFAULT_DIST_DIR
+
+```
+
+Directory where the distributions are stored.
+
+### log_path
+
+```
+log_path: str | None = None
+
+```
+
+Where to write index server logs.
+
+### sources_directory
+
+```
+sources_directory: Path = DEFAULT_REPO_DIR
+
+```
+
+Directory where the sources are stored.
+
+### url
+
+```
+url: str = DEFAULT_INDEX_URL
+
+```
+
+URL to serve the index at.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexStatus
+
+```
+CommandIndexStatus()
+
+```
+
+Command to show the server status.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexStop
+
+```
+CommandIndexStop()
+
+```
+
+Command to stop the server.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandIndexUpdate
+
+```
+CommandIndexUpdate(
+    *,
+    repositories: list[str] = list(),
+    sources_directory: Path = DEFAULT_REPO_DIR,
+    distributions_directory: Path = DEFAULT_DIST_DIR,
+    url: str = DEFAULT_INDEX_URL,
+)
+
+```
+
+Command to update watched projects.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`distributions_directory`** (`Path`) – Directory where the distributions are stored.
+- **`repositories`** (`list[str]`) – List of repository names.
+- **`sources_directory`** (`Path`) – Directory where the sources are stored.
+- **`url`** (`str`) – URL of the index to upload packages to.
+
+### distributions_directory
+
+```
+distributions_directory: Path = DEFAULT_DIST_DIR
+
+```
+
+Directory where the distributions are stored.
+
+### repositories
+
+```
+repositories: list[str] = field(default_factory=list)
+
+```
+
+List of repository names.
+
+### sources_directory
+
+```
+sources_directory: Path = DEFAULT_REPO_DIR
+
+```
+
+Directory where the sources are stored.
+
+### url
+
+```
+url: str = DEFAULT_INDEX_URL
+
+```
+
+URL of the index to upload packages to.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandMain
+
+```
+CommandMain(
+    *,
+    subcommand: CommandBacklog
+    | CommandIndex
+    | CommandProject
+    | CommandSponsors,
+    version: bool = False,
+    debug_info: bool = False,
+    config: Config = _load_config(),
+    log_level: Literal[
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "SUCCESS",
+        "WARNING",
+        "ERROR",
+        "CRITICAL",
+    ] = "INFO",
+    log_path: str | None = None,
+    log_include: tuple[str, ...] = tuple(),
+    log_exclude: tuple[str, ...] = tuple(),
+    log_downgrade: tuple[str, ...] = tuple(),
+)
+
+```
+
+Command to manage your Insiders projects.
+
+Attributes:
+
+- **`config`** (`Config`) – Path to the configuration file.
+- **`debug_info`** (`bool`) – Print debug information.
+- **`log_downgrade`** (`tuple[str, ...]`) – Downgrade INFO logs to DEBUG for logs originating from these modules/loggers. By default, all dependency logs are downgraded.
+- **`log_exclude`** (`tuple[str, ...]`) – Exclude logs originating from these modules/loggers. Applied after inclusion. By default, nothing is excluded.
+- **`log_include`** (`tuple[str, ...]`) – Include logs originating from these modules/loggers. By default, all logs are included.
+- **`log_level`** (`Literal['TRACE', 'DEBUG', 'INFO', 'SUCCESS', 'WARNING', 'ERROR', 'CRITICAL']`) – Lowest log level to display. Levels below that will be hidden.
+- **`log_path`** (`str | None`) – Write log messages to this file path.
+- **`subcommand`** (`CommandBacklog | CommandIndex | CommandProject | CommandSponsors`) – The selected subcommand.
+- **`version`** (`bool`) – Print the program version and exit.
+
+### config
+
+```
+config: Config = field(default_factory=_load_config)
+
+```
+
+Path to the configuration file.
+
+### debug_info
+
+```
+debug_info: bool = False
+
+```
+
+Print debug information.
+
+### log_downgrade
+
+```
+log_downgrade: tuple[str, ...] = field(
+    default_factory=tuple
+)
+
+```
+
+Downgrade INFO logs to DEBUG for logs originating from these modules/loggers. By default, all dependency logs are downgraded.
+
+### log_exclude
+
+```
+log_exclude: tuple[str, ...] = field(default_factory=tuple)
+
+```
+
+Exclude logs originating from these modules/loggers. Applied after inclusion. By default, nothing is excluded.
+
+### log_include
+
+```
+log_include: tuple[str, ...] = field(default_factory=tuple)
+
+```
+
+Include logs originating from these modules/loggers. By default, all logs are included.
+
+### log_level
+
+```
+log_level: Literal[
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "SUCCESS",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+] = "INFO"
+
+```
+
+Lowest log level to display. Levels below that will be hidden.
+
+### log_path
+
+```
+log_path: str | None = None
+
+```
+
+Write log messages to this file path.
+
+### subcommand
+
+```
+subcommand: (
+    CommandBacklog
+    | CommandIndex
+    | CommandProject
+    | CommandSponsors
+)
+
+```
+
+The selected subcommand.
+
+### version
+
+```
+version: bool = False
+
+```
+
+Print the program version and exit.
+
+## CommandProject
+
+```
+CommandProject(
+    *,
+    subcommand: CommandProjectCreate
+    | CommandProjectCheck
+    | CommandProjectPyPIRegister,
+)
+
+```
+
+Command to manage projects on GitHub and locally.
+
+Attributes:
+
+- **`subcommand`** (`CommandProjectCreate | CommandProjectCheck | CommandProjectPyPIRegister`) – The selected subcommand.
+
+### subcommand
+
+```
+subcommand: (
+    CommandProjectCreate
+    | CommandProjectCheck
+    | CommandProjectPyPIRegister
+)
+
+```
+
+The selected subcommand.
+
+## CommandProjectCheck
+
+```
+CommandProjectCheck()
+
+```
+
+Command to check GitHub projects.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandProjectCreate
+
+```
+CommandProjectCreate(
+    *,
+    repository: str,
+    description: str,
+    namespace: str,
+    project_directory: Path,
+    insiders_repository: str | None = None,
+    insiders_namespace: str | None = None,
+    insiders_project_directory: Path,
+    github_username: str | None = None,
+    copier_template: str | None = None,
+    copier_template_answers: dict[str, str] | None = None,
+    post_creation_command: list[str] | None = None,
+    register_on_pypi: bool = False,
+    pypi_username: str | None = None,
+)
+
+```
+
+Command to create public/insiders repositories.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`copier_template`** (`str | None`) – Copier template to generate new projects with.
+- **`copier_template_answers`** (`dict[str, str] | None`) – Copier template answers to use when generating a project.
+- **`description`** (`str`) – Shared description.
+- **`github_username`** (`str | None`) – GitHub username.
+- **`insiders_namespace`** (`str | None`) – Namespace of the insiders repository.
+- **`insiders_project_directory`** (`Path`) – Directory in which to clone the insiders repository.
+- **`insiders_repository`** (`str | None`) – Name of the insiders repository.
+- **`namespace`** (`str`) – Namespace of the public repository.
+- **`post_creation_command`** (`list[str] | None`) – Command to run after creating the public repository.
+- **`project_directory`** (`Path`) – Directory in which to clone the public repository.
+- **`pypi_username`** (`str | None`) – PyPI username to register the project with.
+- **`register_on_pypi`** (`bool`) – Whether to register the project on PyPI after creating it.
+- **`repository`** (`str`) – Name of the public repository.
+
+### copier_template
+
+```
+copier_template: str | None = None
+
+```
+
+Copier template to generate new projects with.
+
+### copier_template_answers
+
+```
+copier_template_answers: dict[str, str] | None = None
+
+```
+
+Copier template answers to use when generating a project.
+
+### description
+
+```
+description: str
+
+```
+
+Shared description.
+
+### github_username
+
+```
+github_username: str | None = None
+
+```
+
+GitHub username.
+
+### insiders_namespace
+
+```
+insiders_namespace: str | None = None
+
+```
+
+Namespace of the insiders repository.
+
+### insiders_project_directory
+
+```
+insiders_project_directory: Path
+
+```
+
+Directory in which to clone the insiders repository.
+
+### insiders_repository
+
+```
+insiders_repository: str | None = None
+
+```
+
+Name of the insiders repository.
+
+### namespace
+
+```
+namespace: str
+
+```
+
+Namespace of the public repository.
+
+### post_creation_command
+
+```
+post_creation_command: list[str] | None = None
+
+```
+
+Command to run after creating the public repository.
+
+### project_directory
+
+```
+project_directory: Path
+
+```
+
+Directory in which to clone the public repository.
+
+### pypi_username
+
+```
+pypi_username: str | None = None
+
+```
+
+PyPI username to register the project with.
+
+### register_on_pypi
+
+```
+register_on_pypi: bool = False
+
+```
+
+Whether to register the project on PyPI after creating it.
+
+### repository
+
+```
+repository: str
+
+```
+
+Name of the public repository.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandProjectPyPIRegister
+
+```
+CommandProjectPyPIRegister(
+    *, username: str, name: str, description: str
+)
+
+```
+
+Command to register a project name on PyPI.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`description`** (`str`) – Description of the project on PyPI.
+- **`name`** (`str`) – Name to register.
+- **`username`** (`str`) – Username on PyPI (your account).
+
+### description
+
+```
+description: str
+
+```
+
+Description of the project on PyPI.
+
+### name
+
+```
+name: str
+
+```
+
+Name to register.
+
+### username
+
+```
+username: str
+
+```
+
+Username on PyPI (your account).
+
+### __call__
+
+```
+__call__() -> Any
+
+```
+
+Run the command.
+
+## CommandSponsors
+
+```
+CommandSponsors(
+    *,
+    subcommand: CommandSponsorsList
+    | CommandSponsorsShow
+    | CommandSponsorsTeamList
+    | CommandSponsorsTeamSync,
+)
+
+```
+
+Command to manage sponsors.
+
+Attributes:
+
+- **`subcommand`** (`CommandSponsorsList | CommandSponsorsShow | CommandSponsorsTeamList | CommandSponsorsTeamSync`) – The selected subcommand.
+
+### subcommand
+
+```
+subcommand: (
+    CommandSponsorsList
+    | CommandSponsorsShow
+    | CommandSponsorsTeamList
+    | CommandSponsorsTeamSync
+)
+
+```
+
+The selected subcommand.
+
+## CommandSponsorsList
+
+```
+CommandSponsorsList(
+    *,
+    github_sponsored_account: str = "",
+    include_users: list[str] = list(),
+    exclude_users: list[str] = list(),
+    github_beneficiaries: dict[str, list[str]] = dict(),
+    github_token: str = "",
+    polar_sponsored_account: str = "",
+    polar_beneficiaries: dict[str, list[str]] = dict(),
+    polar_token: str = "",
+    minimum_amount: int = 0,
+    public: bool = False,
+    sponsorships: bool = False,
+)
+
+```
+
+Command to list sponsors.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`exclude_users`** (`list[str]`) – Users that should never be in the team.
+- **`github_beneficiaries`** (`dict[str, list[str]]`) – Beneficiaries of GitHub sponsors.
+- **`github_sponsored_account`** (`str`) – The sponsored account on GitHub Sponsors.
+- **`github_token`** (`str`) – A GitHub token. Recommended scopes: admin:org and read:user.
+- **`include_users`** (`list[str]`) – Users that should always be in the team.
+- **`minimum_amount`** (`int`) – Minimum amount to be considered an insider.
+- **`polar_beneficiaries`** (`dict[str, list[str]]`) – Beneficiaries of Polar sponsors.
+- **`polar_sponsored_account`** (`str`) – The sponsored account on Polar.
+- **`polar_token`** (`str`) – A Polar token. Recommended scopes: user:read, issues:read, subscriptions:read.
+- **`public`** (`bool`) – Only use public sponsorships.
+- **`sponsorships`** (`bool`) – List sponsorships rather than users/sponsors.
+
+### exclude_users
+
+```
+exclude_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should never be in the team.
+
+### github_beneficiaries
+
+```
+github_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of GitHub sponsors.
+
+### github_sponsored_account
+
+```
+github_sponsored_account: str = ''
+
+```
+
+The sponsored account on GitHub Sponsors.
+
+### github_token
+
+```
+github_token: str = ''
+
+```
+
+A GitHub token. Recommended scopes: `admin:org` and `read:user`.
+
+### include_users
+
+```
+include_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should always be in the team.
+
+### minimum_amount
+
+```
+minimum_amount: int = 0
+
+```
+
+Minimum amount to be considered an insider.
+
+### polar_beneficiaries
+
+```
+polar_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of Polar sponsors.
+
+### polar_sponsored_account
+
+```
+polar_sponsored_account: str = ''
+
+```
+
+The sponsored account on Polar.
+
+### polar_token
+
+```
+polar_token: str = ''
+
+```
+
+A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`.
+
+### public
+
+```
+public: bool = False
+
+```
+
+Only use public sponsorships.
+
+### sponsorships
+
+```
+sponsorships: bool = False
+
+```
+
+List sponsorships rather than users/sponsors.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandSponsorsShow
+
+```
+CommandSponsorsShow(
+    *,
+    insiders_team: str,
+    github_sponsored_account: str = "",
+    include_users: list[str] = list(),
+    exclude_users: list[str] = list(),
+    github_beneficiaries: dict[str, list[str]] = dict(),
+    github_token: str = "",
+    polar_sponsored_account: str = "",
+    polar_token: str = "",
+    minimum_amount: int = 0,
+    dry_run: bool = False,
+)
+
+```
+
+Command to show details about a sponsor/user.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`dry_run`** (`bool`) – Display the changes that would be made, without making them.
+- **`exclude_users`** (`list[str]`) – Users that should never be in the team.
+- **`github_beneficiaries`** (`dict[str, list[str]]`) – A mapping of users belonging to sponsoring organizations.
+- **`github_sponsored_account`** (`str`) – The sponsored account on GitHub Sponsors.
+- **`github_token`** (`str`) – A GitHub token. Recommended scopes: admin:org and read:user.
+- **`include_users`** (`list[str]`) – Users that should always be in the team.
+- **`insiders_team`** (`str`) – The GitHub team to sync.
+- **`minimum_amount`** (`int`) – Minimum amount to be considered an insider.
+- **`polar_sponsored_account`** (`str`) – The sponsored account on Polar.
+- **`polar_token`** (`str`) – A Polar token. Recommended scopes: user:read, issues:read, subscriptions:read.
+
+### dry_run
+
+```
+dry_run: bool = False
+
+```
+
+Display the changes that would be made, without making them.
+
+### exclude_users
+
+```
+exclude_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should never be in the team.
+
+### github_beneficiaries
+
+```
+github_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+A mapping of users belonging to sponsoring organizations.
+
+### github_sponsored_account
+
+```
+github_sponsored_account: str = ''
+
+```
+
+The sponsored account on GitHub Sponsors.
+
+### github_token
+
+```
+github_token: str = ''
+
+```
+
+A GitHub token. Recommended scopes: `admin:org` and `read:user`.
+
+### include_users
+
+```
+include_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should always be in the team.
+
+### insiders_team
+
+```
+insiders_team: str
+
+```
+
+The GitHub team to sync.
+
+### minimum_amount
+
+```
+minimum_amount: int = 0
+
+```
+
+Minimum amount to be considered an insider.
+
+### polar_sponsored_account
+
+```
+polar_sponsored_account: str = ''
+
+```
+
+The sponsored account on Polar.
+
+### polar_token
+
+```
+polar_token: str = ''
+
+```
+
+A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandSponsorsTeamList
+
+```
+CommandSponsorsTeamList()
+
+```
+
+Command to list team memberships.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## CommandSponsorsTeamSync
+
+```
+CommandSponsorsTeamSync(
+    *,
+    insiders_team: str,
+    github_sponsored_account: str = "",
+    include_users: list[str] = list(),
+    exclude_users: list[str] = list(),
+    github_beneficiaries: dict[str, list[str]] = dict(),
+    github_token: str = "",
+    polar_sponsored_account: str = "",
+    polar_beneficiaries: dict[str, list[str]] = dict(),
+    polar_token: str = "",
+    minimum_amount: int = 0,
+    dry_run: bool = False,
+)
+
+```
+
+Command to sync team memberships with current sponsors.
+
+Methods:
+
+- **`__call__`** – Run the command.
+
+Attributes:
+
+- **`dry_run`** (`bool`) – Display the changes that would be made, without making them.
+- **`exclude_users`** (`list[str]`) – Users that should never be in the team.
+- **`github_beneficiaries`** (`dict[str, list[str]]`) – A mapping of users belonging to sponsoring organizations.
+- **`github_sponsored_account`** (`str`) – The sponsored account on GitHub Sponsors.
+- **`github_token`** (`str`) – A GitHub token. Recommended scopes: admin:org and read:user.
+- **`include_users`** (`list[str]`) – Users that should always be in the team.
+- **`insiders_team`** (`str`) – The GitHub team to sync.
+- **`minimum_amount`** (`int`) – Minimum amount to be considered an insider.
+- **`polar_beneficiaries`** (`dict[str, list[str]]`) – Beneficiaries of Polar sponsors.
+- **`polar_sponsored_account`** (`str`) – The sponsored account on Polar.
+- **`polar_token`** (`str`) – A Polar token. Recommended scopes: user:read, issues:read, subscriptions:read.
+
+### dry_run
+
+```
+dry_run: bool = False
+
+```
+
+Display the changes that would be made, without making them.
+
+### exclude_users
+
+```
+exclude_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should never be in the team.
+
+### github_beneficiaries
+
+```
+github_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+A mapping of users belonging to sponsoring organizations.
+
+### github_sponsored_account
+
+```
+github_sponsored_account: str = ''
+
+```
+
+The sponsored account on GitHub Sponsors.
+
+### github_token
+
+```
+github_token: str = ''
+
+```
+
+A GitHub token. Recommended scopes: `admin:org` and `read:user`.
+
+### include_users
+
+```
+include_users: list[str] = field(default_factory=list)
+
+```
+
+Users that should always be in the team.
+
+### insiders_team
+
+```
+insiders_team: str
+
+```
+
+The GitHub team to sync.
+
+### minimum_amount
+
+```
+minimum_amount: int = 0
+
+```
+
+Minimum amount to be considered an insider.
+
+### polar_beneficiaries
+
+```
+polar_beneficiaries: dict[str, list[str]] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of Polar sponsors.
+
+### polar_sponsored_account
+
+```
+polar_sponsored_account: str = ''
+
+```
+
+The sponsored account on Polar.
+
+### polar_token
+
+```
+polar_token: str = ''
+
+```
+
+A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`.
+
+### __call__
+
+```
+__call__() -> int
+
+```
+
+Run the command.
+
+Returns:
+
+- `int` – Return code.
+
+## Config
+
+```
+Config(
+    *,
+    backlog_namespaces: list[str] | Unset = config_field(
+        "backlog.namespaces"
+    ),
+    backlog_sort: list[Callable] | Unset = config_field(
+        "backlog.sort", transform="_eval_sort"
+    ),
+    backlog_limit: int | Unset = config_field(
+        "backlog.limit"
+    ),
+    backlog_issue_labels: dict[str, str]
+    | Unset = config_field("backlog.issue-labels"),
+    backlog_github_token_command: str
+    | Unset = config_field("backlog.github-token-command"),
+    backlog_polar_token_command: str | Unset = config_field(
+        "backlog.polar-token-command"
+    ),
+    index_url: str | Unset = config_field("index.url"),
+    index_start_in_background: bool | Unset = config_field(
+        "index.start-in-background"
+    ),
+    index_distributions_directory: str
+    | Unset = config_field("index.distributions-directory"),
+    index_sources_directory: str | Unset = config_field(
+        "index.sources-directory"
+    ),
+    index_log_path: str | Unset = config_field(
+        "index.log-path"
+    ),
+    project_github_username: str | Unset = config_field(
+        "project.github-username"
+    ),
+    project_namespace: str | Unset = config_field(
+        "project.namespace"
+    ),
+    project_insiders_namespace: str | Unset = config_field(
+        "project.insiders-namespace"
+    ),
+    project_directory: str | Unset = config_field(
+        "project.directory"
+    ),
+    project_insiders_directory: str | Unset = config_field(
+        "project.insiders-directory"
+    ),
+    project_register_on_pypi: bool | Unset = config_field(
+        "project.register-on-pypi"
+    ),
+    project_pypi_username: str | Unset = config_field(
+        "project.pypi-username"
+    ),
+    project_post_creation_command: str
+    | list[str]
+    | Unset = config_field("project.post-creation-command"),
+    project_copier_template: str | Unset = config_field(
+        "project.copier-template"
+    ),
+    project_copier_template_answers: dict[str, str]
+    | Unset = config_field(
+        "project.copier-template-answers"
+    ),
+    sponsors_minimum_amount: int | Unset = config_field(
+        "sponsors.minimum-amount"
+    ),
+    sponsors_github_sponsored_account: str
+    | Unset = config_field(
+        "sponsors.github-sponsored-account"
+    ),
+    sponsors_github_token_command: str
+    | Unset = config_field("sponsors.github-token-command"),
+    sponsors_github_beneficiaries: dict[str, set[str]]
+    | Unset = config_field("sponsors.github-beneficiaries"),
+    sponsors_polar_sponsored_account: str
+    | Unset = config_field(
+        "sponsors.polar-sponsored-account"
+    ),
+    sponsors_polar_token_command: str
+    | Unset = config_field("sponsors.polar-token-command"),
+    sponsors_polar_beneficiaries: dict[str, set[str]]
+    | Unset = config_field("sponsors.polar-beneficiaries"),
+    sponsors_insiders_team: str | Unset = config_field(
+        "sponsors.insiders-team"
+    ),
+    sponsors_include_users: set[str] | Unset = config_field(
+        "sponsors.include-users"
+    ),
+    sponsors_exclude_users: set[str] | Unset = config_field(
+        "sponsors.exclude-users"
+    ),
+)
+
+```
+
+Configuration for the insiders project.
+
+Methods:
+
+- **`from_default_location`** – Load configuration from the default location.
+- **`from_file`** – Load configuration from a file.
+
+Attributes:
+
+- **`backlog_github_token`** (`str | Unset`) – Get the GitHub token for backlog operations.
+- **`backlog_github_token_command`** (`str | Unset`) – Command to obtain a GitHub token for the backlog.
+- **`backlog_issue_labels`** (`dict[str, str] | Unset`) – Map of label names to their display value (emojis, typically).
+- **`backlog_limit`** (`int | Unset`) – Limit the number of displayed issues.
+- **`backlog_namespaces`** (`list[str] | Unset`) – GitHub namespaces to fetch issues from.
+- **`backlog_polar_token`** (`str | Unset`) – Get the Polar token for backlog operations.
+- **`backlog_polar_token_command`** (`str | Unset`) – Command to obtain a Polar token for the backlog.
+- **`backlog_sort`** (`list[Callable] | Unset`) – Sort strategies to apply to the backlog.
+- **`index_distributions_directory`** (`str | Unset`) – Directory to store generated Python project distributions.
+- **`index_log_path`** (`str | Unset`) – Where to write the index server logs to.
+- **`index_sources_directory`** (`str | Unset`) – Directory to store project sources (cloned repositories).
+- **`index_start_in_background`** (`bool | Unset`) – Whether to start the index server in the background.
+- **`index_url`** (`str | Unset`) – URL of the index server.
+- **`project_copier_template`** (`str | Unset`) – Copier template to generate new projects with.
+- **`project_copier_template_answers`** (`dict[str, str] | Unset`) – Copier template answers to use when generating a project.
+- **`project_directory`** (`str | Unset`) – Directory in which to clone created public projects.
+- **`project_github_username`** (`str | Unset`) – GitHub username to use for operations.
+- **`project_insiders_directory`** (`str | Unset`) – Directory in which to clone created private projects.
+- **`project_insiders_namespace`** (`str | Unset`) – GitHub namespace to create insiders projects in.
+- **`project_namespace`** (`str | Unset`) – GitHub namespace to create public projects in.
+- **`project_post_creation_command`** (`str | list[str] | Unset`) – Command to run after creating a project.
+- **`project_pypi_username`** (`str | Unset`) – PyPI username to use when registering projects on PyPI.
+- **`project_register_on_pypi`** (`bool | Unset`) – Whether to register new projects on PyPI after creating them.
+- **`sponsors_exclude_users`** (`set[str] | Unset`) – GitHub users to never include in the insiders team (even sponsors).
+- **`sponsors_github_beneficiaries`** (`dict[str, set[str]] | Unset`) – Map of GitHub sponsors to their beneficiaries.
+- **`sponsors_github_sponsored_account`** (`str | Unset`) – GitHub account receiving sponsorships.
+- **`sponsors_github_token`** (`str | Unset`) – Get the GitHub token for sponsors operations.
+- **`sponsors_github_token_command`** (`str | Unset`) – Command to obtain a GitHub token.
+- **`sponsors_include_users`** (`set[str] | Unset`) – GitHub users to always include in the insiders team (even non-sponsors).
+- **`sponsors_insiders_team`** (`str | Unset`) – GitHub team to add insiders to.
+- **`sponsors_minimum_amount`** (`int | Unset`) – Minimum sponsorship amount to be considered an insider.
+- **`sponsors_polar_beneficiaries`** (`dict[str, set[str]] | Unset`) – Map of Polar sponsors to their beneficiaries.
+- **`sponsors_polar_sponsored_account`** (`str | Unset`) – Polar account receiving sponsorships.
+- **`sponsors_polar_token`** (`str | Unset`) – Get the Polar token for sponsors operations.
+- **`sponsors_polar_token_command`** (`str | Unset`) – Command to obtain a Polar token for the sponsors.
+
+### backlog_github_token
+
+```
+backlog_github_token: str | Unset
+
+```
+
+Get the GitHub token for backlog operations.
+
+### backlog_github_token_command
+
+```
+backlog_github_token_command: str | Unset = config_field(
+    "backlog.github-token-command"
+)
+
+```
+
+Command to obtain a GitHub token for the backlog.
+
+### backlog_issue_labels
+
+```
+backlog_issue_labels: dict[str, str] | Unset = config_field(
+    "backlog.issue-labels"
+)
+
+```
+
+Map of label names to their display value (emojis, typically).
+
+### backlog_limit
+
+```
+backlog_limit: int | Unset = config_field('backlog.limit')
+
+```
+
+Limit the number of displayed issues.
+
+### backlog_namespaces
+
+```
+backlog_namespaces: list[str] | Unset = config_field(
+    "backlog.namespaces"
+)
+
+```
+
+GitHub namespaces to fetch issues from.
+
+### backlog_polar_token
+
+```
+backlog_polar_token: str | Unset
+
+```
+
+Get the Polar token for backlog operations.
+
+### backlog_polar_token_command
+
+```
+backlog_polar_token_command: str | Unset = config_field(
+    "backlog.polar-token-command"
+)
+
+```
+
+Command to obtain a Polar token for the backlog.
+
+### backlog_sort
+
+```
+backlog_sort: list[Callable] | Unset = config_field(
+    "backlog.sort", transform="_eval_sort"
+)
+
+```
+
+Sort strategies to apply to the backlog.
+
+### index_distributions_directory
+
+```
+index_distributions_directory: str | Unset = config_field(
+    "index.distributions-directory"
+)
+
+```
+
+Directory to store generated Python project distributions.
+
+### index_log_path
+
+```
+index_log_path: str | Unset = config_field("index.log-path")
+
+```
+
+Where to write the index server logs to.
+
+### index_sources_directory
+
+```
+index_sources_directory: str | Unset = config_field(
+    "index.sources-directory"
+)
+
+```
+
+Directory to store project sources (cloned repositories).
+
+### index_start_in_background
+
+```
+index_start_in_background: bool | Unset = config_field(
+    "index.start-in-background"
+)
+
+```
+
+Whether to start the index server in the background.
+
+### index_url
+
+```
+index_url: str | Unset = config_field('index.url')
+
+```
+
+URL of the index server.
+
+### project_copier_template
+
+```
+project_copier_template: str | Unset = config_field(
+    "project.copier-template"
+)
+
+```
+
+Copier template to generate new projects with.
+
+### project_copier_template_answers
+
+```
+project_copier_template_answers: dict[str, str] | Unset = (
+    config_field("project.copier-template-answers")
+)
+
+```
+
+Copier template answers to use when generating a project.
+
+### project_directory
+
+```
+project_directory: str | Unset = config_field(
+    "project.directory"
+)
+
+```
+
+Directory in which to clone created public projects.
+
+### project_github_username
+
+```
+project_github_username: str | Unset = config_field(
+    "project.github-username"
+)
+
+```
+
+GitHub username to use for operations.
+
+### project_insiders_directory
+
+```
+project_insiders_directory: str | Unset = config_field(
+    "project.insiders-directory"
+)
+
+```
+
+Directory in which to clone created private projects.
+
+### project_insiders_namespace
+
+```
+project_insiders_namespace: str | Unset = config_field(
+    "project.insiders-namespace"
+)
+
+```
+
+GitHub namespace to create insiders projects in.
+
+### project_namespace
+
+```
+project_namespace: str | Unset = config_field(
+    "project.namespace"
+)
+
+```
+
+GitHub namespace to create public projects in.
+
+### project_post_creation_command
+
+```
+project_post_creation_command: str | list[str] | Unset = (
+    config_field("project.post-creation-command")
+)
+
+```
+
+Command to run after creating a project.
+
+### project_pypi_username
+
+```
+project_pypi_username: str | Unset = config_field(
+    "project.pypi-username"
+)
+
+```
+
+PyPI username to use when registering projects on PyPI.
+
+### project_register_on_pypi
+
+```
+project_register_on_pypi: bool | Unset = config_field(
+    "project.register-on-pypi"
+)
+
+```
+
+Whether to register new projects on PyPI after creating them.
+
+### sponsors_exclude_users
+
+```
+sponsors_exclude_users: set[str] | Unset = config_field(
+    "sponsors.exclude-users"
+)
+
+```
+
+GitHub users to never include in the insiders team (even sponsors).
+
+### sponsors_github_beneficiaries
+
+```
+sponsors_github_beneficiaries: (
+    dict[str, set[str]] | Unset
+) = config_field("sponsors.github-beneficiaries")
+
+```
+
+Map of GitHub sponsors to their beneficiaries.
+
+### sponsors_github_sponsored_account
+
+```
+sponsors_github_sponsored_account: str | Unset = (
+    config_field("sponsors.github-sponsored-account")
+)
+
+```
+
+GitHub account receiving sponsorships.
+
+### sponsors_github_token
+
+```
+sponsors_github_token: str | Unset
+
+```
+
+Get the GitHub token for sponsors operations.
+
+### sponsors_github_token_command
+
+```
+sponsors_github_token_command: str | Unset = config_field(
+    "sponsors.github-token-command"
+)
+
+```
+
+Command to obtain a GitHub token.
+
+### sponsors_include_users
+
+```
+sponsors_include_users: set[str] | Unset = config_field(
+    "sponsors.include-users"
+)
+
+```
+
+GitHub users to always include in the insiders team (even non-sponsors).
+
+### sponsors_insiders_team
+
+```
+sponsors_insiders_team: str | Unset = config_field(
+    "sponsors.insiders-team"
+)
+
+```
+
+GitHub team to add insiders to.
+
+### sponsors_minimum_amount
+
+```
+sponsors_minimum_amount: int | Unset = config_field(
+    "sponsors.minimum-amount"
+)
+
+```
+
+Minimum sponsorship amount to be considered an insider.
+
+### sponsors_polar_beneficiaries
+
+```
+sponsors_polar_beneficiaries: (
+    dict[str, set[str]] | Unset
+) = config_field("sponsors.polar-beneficiaries")
+
+```
+
+Map of Polar sponsors to their beneficiaries.
+
+### sponsors_polar_sponsored_account
+
+```
+sponsors_polar_sponsored_account: str | Unset = (
+    config_field("sponsors.polar-sponsored-account")
+)
+
+```
+
+Polar account receiving sponsorships.
+
+### sponsors_polar_token
+
+```
+sponsors_polar_token: str | Unset
+
+```
+
+Get the Polar token for sponsors operations.
+
+### sponsors_polar_token_command
+
+```
+sponsors_polar_token_command: str | Unset = config_field(
+    "sponsors.polar-token-command"
+)
+
+```
+
+Command to obtain a Polar token for the sponsors.
+
+### from_default_location
+
+```
+from_default_location() -> Config
+
+```
+
+Load configuration from the default location.
+
+### from_file
+
+```
+from_file(path: str | Path) -> Config
+
+```
+
+Load configuration from a file.
+
+## GitHub
+
+```
+GitHub(token: str)
+
+```
+
+Bases: `_Client`
+
+GitHub client.
+
+Initialize GitHub API client.
+
+Parameters:
+
+- **`token`** (`str`) – A GitHub token. Recommended scopes: admin:org and read:user.
+
+Methods:
+
+- **`consolidate_beneficiaries`** – Consolidate beneficiaries from sponsors data.
+- **`create_repo`** – Create a repository.
+- **`get_failed_invites`** –
+- **`get_issues`** – Get issues from GitHub.
+- **`get_org_members`** – Get organization members (username only).
+- **`get_sponsors`** – Get GitHub sponsors.
+- **`get_team_invites`** – Get pending invitations to a GitHub team.
+- **`get_team_members`** – Get members of a GitHub team.
+- **`grant_access`** – Grant access to a user to a GitHub team.
+- **`is_org`** – Check if an account is an organization.
+- **`revoke_access`** – Revoke access from a user to a GitHub team.
+- **`sync_team`** – Sync sponsors with members of a GitHub team.
+
+Attributes:
+
+- **`http_client`** (`Client`) – HTTP client.
+- **`name`** (`str`) – The name of the client.
+
+### http_client
+
+```
+http_client: Client = Client(
+    base_url="https://api.github.com",
+    headers={"Authorization": f"Bearer {token}"},
+)
+
+```
+
+HTTP client.
+
+### name
+
+```
+name: str = 'GitHub'
+
+```
+
+The name of the client.
+
+### consolidate_beneficiaries
+
+```
+consolidate_beneficiaries(
+    sponsors: Sponsors,
+    beneficiaries: Mapping[
+        str,
+        Mapping[
+            str, Iterable[str | Mapping[str, str | bool]]
+        ],
+    ],
+) -> None
+
+```
+
+Consolidate beneficiaries from sponsors data.
+
+Parameters:
+
+- **`sponsors`** (`Sponsors`) – Sponsors data.
+- **`beneficiaries`** (`Mapping[str, Mapping[str, Iterable[str | Mapping[str, str | bool]]]]`) – Beneficiaries data. It's a mapping of platform to account name to a list of beneficiaries.
+
+### create_repo
+
+```
+create_repo(
+    repository: str,
+    *,
+    description: str | None = None,
+    homepage: str | None = None,
+    private: bool = False,
+    has_issues: bool = False,
+    has_projects: bool = False,
+    has_wiki: bool = False,
+    has_discussions: bool = False,
+) -> None
+
+```
+
+Create a repository.
+
+Parameters:
+
+- **`repository`** (`str`) – The repository, like namespace/repo.
+- **`description`** (`str | None`, default: `None` ) – The repository description.
+- **`homepage`** (`str | None`, default: `None` ) – The repository homepage.
+- **`private`** (`bool`, default: `False` ) – Whether the repository is private.
+- **`has_issues`** (`bool`, default: `False` ) – Enable issues.
+- **`has_projects`** (`bool`, default: `False` ) – Enable projects.
+- **`has_wiki`** (`bool`, default: `False` ) – Enable the wiki.
+- **`has_discussions`** (`bool`, default: `False` ) – Enable discussions.
+
+### get_failed_invites
+
+```
+get_failed_invites(org: str) -> set[str]
+
+```
+
+Parameters:
+
+- **`org`** (`str`) – The organization name.
+
+Returns:
+
+- `set[str]` – A set of member names.
+
+### get_issues
+
+```
+get_issues(
+    github_accounts: Iterable[str],
+    known_github_users: Iterable[Account] | None = None,
+    *,
+    allow_labels: set[str] | None = None,
+) -> dict[tuple[str, str], Issue]
+
+```
+
+Get issues from GitHub.
+
+Parameters:
+
+- **`github_accounts`** (`Iterable[str]`) – A list of GitHub account names.
+- **`known_github_users`** (`Iterable[Account] | None`, default: `None` ) – Known user accounts.
+- **`allow_labels`** (`set[str] | None`, default: `None` ) – A set of labels to keep.
+
+Returns:
+
+- `dict[tuple[str, str], Issue]` – A dictionary of issues.
+
+### get_org_members
+
+```
+get_org_members(org: str) -> set[str]
+
+```
+
+Get organization members (username only).
+
+Parameters:
+
+- **`org`** (`str`) – The organization name.
+
+Returns:
+
+- `set[str]` – A set of member names.
+
+### get_sponsors
+
+```
+get_sponsors(*, exclude_private: bool = False) -> Sponsors
+
+```
+
+Get GitHub sponsors.
+
+Returns:
+
+- `Sponsors` – Sponsors data.
+
+### get_team_invites
+
+```
+get_team_invites(org: str, team: str) -> set[str]
+
+```
+
+Get pending invitations to a GitHub team.
+
+Parameters:
+
+- **`org`** (`str`) – The organization name.
+- **`team`** (`str`) – The team name.
+
+Returns:
+
+- `set[str]` – A set of member names.
+
+### get_team_members
+
+```
+get_team_members(org: str, team: str) -> set[str]
+
+```
+
+Get members of a GitHub team.
+
+Parameters:
+
+- **`org`** (`str`) – The organization name.
+- **`team`** (`str`) – The team name.
+
+Returns:
+
+- `set[str]` – A set of member names.
+
+### grant_access
+
+```
+grant_access(user: str, org: str, team: str) -> None
+
+```
+
+Grant access to a user to a GitHub team.
+
+Parameters:
+
+- **`user`** (`str`) – A username.
+- **`org`** (`str`) – An organization name.
+- **`team`** (`str`) – A team name.
+
+### is_org
+
+```
+is_org(account: str) -> bool
+
+```
+
+Check if an account is an organization.
+
+Parameters:
+
+- **`account`** (`str`) – An account name.
+
+Returns:
+
+- `bool` – Whether the account is an organization.
+
+### revoke_access
+
+```
+revoke_access(user: str, org: str, team: str) -> None
+
+```
+
+Revoke access from a user to a GitHub team.
+
+Parameters:
+
+- **`user`** (`str`) – A username.
+- **`org`** (`str`) – An organization name.
+- **`team`** (`str`) – A team name.
+
+### sync_team
+
+```
+sync_team(
+    team: str,
+    *,
+    sponsors: Sponsors | None = None,
+    min_amount: int | None = None,
+    include_users: set[str] | None = None,
+    exclude_users: set[str] | None = None,
+    dry_run: bool = False,
+) -> None
+
+```
+
+Sync sponsors with members of a GitHub team.
+
+Parameters:
+
+- **`team`** (`str`) – GitHub team to sync sponsors with.
+- **`sponsors`** (`Sponsors | None`, default: `None` ) – Sponsors data.
+- **`min_amount`** (`int | None`, default: `None` ) – Minimum amount to be considered a sponsor.
+- **`include_users`** (`set[str] | None`, default: `None` ) – Users to always grant access to.
+- **`exclude_users`** (`set[str] | None`, default: `None` ) – Users to never grant access to.
+- **`dry_run`** (`bool`, default: `False` ) – Display changes without applying them.
+
+## Index
+
+```
+Index(
+    url: str = DEFAULT_INDEX_URL,
+    git_dir: Path = DEFAULT_REPO_DIR,
+    dist_dir: Path = DEFAULT_DIST_DIR,
+)
+
+```
+
+Index of repositories.
+
+Initialize the index.
+
+Parameters: conf_path: The path to the configuration file.
+
+Methods:
+
+- **`add`** – Add a repository to the index.
+- **`exists`** – Tell if a package version exists.
+- **`latest`** – Get the latest version of a package.
+- **`list_distributions`** – List the distributions in the index.
+- **`list_projects`** – List the projects in the index.
+- **`logs`** – Return the logs file path.
+- **`remove`** – Remove a repository from the index.
+- **`start`** – Start the server.
+- **`status`** – Return the server status as a dict of metadata.
+- **`stop`** – Stop the server.
+- **`update`** – Update PyPI packages.
+- **`upload`** – Upload distributions.
+
+Attributes:
+
+- **`dist_dir`** (`Path`) – The directory in which to store the distributions.
+- **`git_dir`** (`Path`) – The directory in which to clone the repositories.
+- **`port`** (`int`) – The port of the index server.
+- **`url`** (`str`) – The URL of the index.
+
+### dist_dir
+
+```
+dist_dir: Path = dist_dir
+
+```
+
+The directory in which to store the distributions.
+
+### git_dir
+
+```
+git_dir: Path = git_dir
+
+```
+
+The directory in which to clone the repositories.
+
+### port
+
+```
+port: int = port or 80
+
+```
+
+The port of the index server.
+
+### url
+
+```
+url: str = url
+
+```
+
+The URL of the index.
+
+### add
+
+```
+add(git_url: str, repo: str | None = None) -> None
+
+```
+
+Add a repository to the index.
+
+### exists
+
+```
+exists(name: str, version: str) -> bool
+
+```
+
+Tell if a package version exists.
+
+Parameters:
+
+- **`name`** (`str`) – The package name (distribution name).
+- **`version`** (`str`) – The package version.
+
+Returns:
+
+- `bool` – Whether the package version exists or not.
+
+### latest
+
+```
+latest(name: str) -> str | None
+
+```
+
+Get the latest version of a package.
+
+Parameters:
+
+- **`name`** (`str`) – The package name (distribution name).
+
+Returns:
+
+- `str | None` – The version as a string, or none.
+
+### list_distributions
+
+```
+list_distributions() -> Iterator[Path]
+
+```
+
+List the distributions in the index.
+
+### list_projects
+
+```
+list_projects() -> Iterator[Path]
+
+```
+
+List the projects in the index.
+
+### logs
+
+```
+logs() -> str
+
+```
+
+Return the logs file path.
+
+### remove
+
+```
+remove(repo: str) -> None
+
+```
+
+Remove a repository from the index.
+
+### start
+
+```
+start(
+    *, background: bool = False, log_path: str | None = None
+) -> None
+
+```
+
+Start the server.
+
+### status
+
+```
+status() -> dict | None
+
+```
+
+Return the server status as a dict of metadata.
+
+Returns:
+
+- `dict | None` – Some metadata about the server process.
+
+### stop
+
+```
+stop() -> bool
+
+```
+
+Stop the server.
+
+Returns:
+
+- `bool` – Whether the server was stopped or not.
+
+### update
+
+```
+update(projects: Iterable[str] | None = None) -> None
+
+```
+
+Update PyPI packages.
+
+For each configured repository, pull latest contents, checkout latest tag, and if the corresponding version is not present on the index, build and upload distributions.
+
+### upload
+
+```
+upload(dists: Iterable[str | Path]) -> None
+
+```
+
+Upload distributions.
+
+Parameters:
+
+- **`dists`** (`Iterable[str | Path]`) – The distributions to upload.
+
+## Issue
+
+```
+Issue(
+    *,
+    repository: str,
+    number: int,
+    title: str,
+    created: datetime,
+    author: Account,
+    upvotes: set[Account] = set(),
+    labels: set[str] = set(),
+)
+
+```
+
+An issue.
+
+Attributes:
+
+- **`author`** (`Account`) – The issue author.
+- **`created`** (`datetime`) – The issue creation date.
+- **`funding`** (`int`) – Total funding for the issue.
+- **`interested_users`** (`set[Account]`) – Author and upvoters.
+- **`labels`** (`set[str]`) – The issue labels.
+- **`number`** (`int`) – The issue number.
+- **`repository`** (`str`) – The issue repository.
+- **`sponsorships`** (`set[Sponsorship]`) – Sponsorships associated with the issue.
+- **`title`** (`str`) – The issue title.
+- **`upvotes`** (`set[Account]`) – The issue upvotes / upvoters.
+
+### author
+
+```
+author: Account
+
+```
+
+The issue author.
+
+### created
+
+```
+created: datetime
+
+```
+
+The issue creation date.
+
+### funding
+
+```
+funding: int
+
+```
+
+Total funding for the issue.
+
+### interested_users
+
+```
+interested_users: set[Account]
+
+```
+
+Author and upvoters.
+
+### labels
+
+```
+labels: set[str] = field(default_factory=set)
+
+```
+
+The issue labels.
+
+### number
+
+```
+number: int
+
+```
+
+The issue number.
+
+### repository
+
+```
+repository: str
+
+```
+
+The issue repository.
+
+### sponsorships
+
+```
+sponsorships: set[Sponsorship]
+
+```
+
+Sponsorships associated with the issue.
+
+### title
+
+```
+title: str
+
+```
+
+The issue title.
+
+### upvotes
+
+```
+upvotes: set[Account] = field(default_factory=set)
+
+```
+
+The issue upvotes / upvoters.
+
+## Polar
+
+```
+Polar(token: str)
+
+```
+
+Bases: `_Client`
+
+Polar client.
+
+Initialize Polar API client.
+
+Parameters:
+
+- **`token`** (`str`) – A Polar API token. Recommended scopes: user:read, issues:read, subscriptions:read.
+
+Methods:
+
+- **`get_sponsors`** – Get Polar sponsorships.
+
+Attributes:
+
+- **`http_client`** (`Client`) – HTTP client.
+- **`name`** (`str`) – Client name.
+
+### http_client
+
+```
+http_client: Client = Client(
+    base_url="https://api.polar.sh",
+    headers={
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+    },
+)
+
+```
+
+HTTP client.
+
+### name
+
+```
+name: str = 'Polar'
+
+```
+
+Client name.
+
+### get_sponsors
+
+```
+get_sponsors(*, exclude_private: bool = False) -> Sponsors
+
+```
+
+Get Polar sponsorships.
+
+Returns:
+
+- `Sponsors` – Sponsors data.
+
+## Sponsors
+
+```
+Sponsors(*, sponsorships: list[Sponsorship] = list())
+
+```
+
+Wrapper class for sponsorships.
+
+Methods:
+
+- **`__add__`** – Combine two Sponsors instances into a new one.
+- **`__iadd__`** – Merge a second Sponsors instance into the current one.
+- **`merge`** – Merge a second Sponsors instance into the current one.
+
+Attributes:
+
+- **`accounts`** (`set[Account]`) – Set of accounts who created sponsorships.
+- **`beneficiaries`** (`dict[str, Beneficiary]`) – Beneficiaries of all sponsorships.
+- **`sponsorships`** (`list[Sponsorship]`) – Sponsorships.
+
+### accounts
+
+```
+accounts: set[Account]
+
+```
+
+Set of accounts who created sponsorships.
+
+### beneficiaries
+
+```
+beneficiaries: dict[str, Beneficiary]
+
+```
+
+Beneficiaries of all sponsorships.
+
+### sponsorships
+
+```
+sponsorships: list[Sponsorship] = field(
+    default_factory=list
+)
+
+```
+
+Sponsorships.
+
+### __add__
+
+```
+__add__(other: Sponsors) -> Sponsors
+
+```
+
+Combine two Sponsors instances into a new one.
+
+### __iadd__
+
+```
+__iadd__(other: Sponsors) -> Self
+
+```
+
+Merge a second Sponsors instance into the current one.
+
+### merge
+
+```
+merge(other: Sponsors) -> Self
+
+```
+
+Merge a second Sponsors instance into the current one.
+
+## Sponsorship
+
+```
+Sponsorship(
+    *,
+    private: bool = True,
+    created: datetime,
+    amount: int,
+    account: Account,
+    beneficiaries: dict[str, Beneficiary] = dict(),
+)
+
+```
+
+A sponsorship.
+
+Attributes:
+
+- **`account`** (`Account`) – The account who created the sponsorship
+- **`amount`** (`int`) – The amount of the sponsorship
+- **`beneficiaries`** (`dict[str, Beneficiary]`) – Beneficiaries of this sponsorship.
+- **`created`** (`datetime`) – The creation date of the sponsorship
+- **`private`** (`bool`) – Indicates if the sponsorship is private
+
+### account
+
+```
+account: Account
+
+```
+
+The account who created the sponsorship
+
+### amount
+
+```
+amount: int
+
+```
+
+The amount of the sponsorship
+
+### beneficiaries
+
+```
+beneficiaries: dict[str, Beneficiary] = field(
+    default_factory=dict
+)
+
+```
+
+Beneficiaries of this sponsorship.
+
+### created
+
+```
+created: datetime
+
+```
+
+The creation date of the sponsorship
+
+### private
+
+```
+private: bool = True
+
+```
+
+Indicates if the sponsorship is private
+
+## Unset
+
+```
+Unset(key: str, transform: str | None = None)
+
+```
+
+A sentinel value for unset configuration options.
+
+Attributes:
+
+- **`key`** (`str`) – TOML key.
+- **`name`** (`str`) – Config variable name.
+- **`transform`** (`str | None`) – Name of the method to call to transform the config value.
+
+### key
+
+```
+key: str = key
+
+```
+
+TOML key.
+
+### name
+
+```
+name: str = replace('.', '_')
+
+```
+
+Config variable name.
+
+### transform
+
+```
+transform: str | None = transform
+
+```
+
+Name of the method to call to transform the config value.
+
+## config_field
+
+```
+config_field(
+    key: str, transform: str | None = None
+) -> Unset
+
+```
+
+Get a dataclass field with a TOML key.
+
+## get_backlog
+
+```
+get_backlog(
+    github_namespaces: list[str],
+    github: GitHub,
+    sponsors: Sponsors | None = None,
+    issue_labels: set[str] | None = None,
+) -> Backlog
+
+```
+
+Get the backlog.
+
+## main
+
+```
+main(args: list[str] | None = None) -> int
+
+```
+
+Run the main program.
+
+This function is executed when you type `insiders` or `python -m insiders`.
+
+Parameters:
+
+- **`args`** (`list[str] | None`, default: `None` ) – Arguments passed from the command line.
+
+Returns:
+
+- `int` – An exit code.
+
+## new_public_and_insiders_github_projects
+
+```
+new_public_and_insiders_github_projects(
+    *,
+    public_namespace: str,
+    public_name: str,
+    description: str,
+    public_repo_path: str | Path,
+    insiders_namespace: str | None = None,
+    insiders_name: str | None = None,
+    insiders_repo_path: str | Path,
+    github_username: str | None = None,
+    copier_template: str | None = None,
+    copier_template_answers: dict[str, Any] | None = None,
+    post_creation_command: str | list[str] | None = None,
+) -> None
+
+```
+
+Create a new Insiders project on GitHub (public and private repositories).
+
+Parameters:
+
+- **`public_namespace`** (`str`) – Namespace of the public repository.
+- **`public_name`** (`str`) – Name of the public repository.
+- **`description`** (`str`) – Shared description.
+- **`public_repo_path`** (`str | Path`) – Local path in which to clone the public repository.
+- **`insiders_namespace`** (`str | None`, default: `None` ) – Namespace of the insiders repository. Defaults to the public namespace.
+- **`insiders_name`** (`str | None`, default: `None` ) – Name of the insiders repository. Defaults to the public name.
+- **`insiders_repo_path`** (`str | Path`) – Local path in which to clone the insiders repository.
+- **`github_username`** (`str | None`, default: `None` ) – Username. Defaults to the public namespace value.
+- **`copier_template`** (`str | None`, default: `None` ) – Copier template to initialize the local insiders repository with.
+- **`copier_template_answers`** (`dict[str, Any] | None`, default: `None` ) – Answers to the Copier template questions.
+- **`post_creation_command`** (`str | list[str] | None`, default: `None` ) – Command to run after creating the public repository.
+
+## print_backlog
+
+```
+print_backlog(
+    backlog: Backlog,
+    labels: dict[str, str] | None = None,
+    limit: int = 0,
+) -> None
+
+```
+
+Print the backlog.
+
+Parameters:
+
+- **`backlog`** (`Backlog`) – The backlog to print.
+- **`labels`** (`dict[str, str] | None`, default: `None` ) – A map of label representations.
+- **`limit`** (`int`, default: `0` ) – The maximum number of issues to print.
+
+## print_sponsors
+
+```
+print_sponsors(
+    sponsors: Sponsors,
+    min_amount: int,
+    limit: int = 0,
+    *,
+    sponsorships: bool = False,
+) -> None
+
+```
+
+Print the sponsors/sponsorships.
+
+Parameters:
+
+- **`sponsors`** (`Sponsors`) – The sponsors to print.
+- **`min_amount`** (`int`) – The minimum amount for a sponsor to become an Insiders.
+- **`limit`** (`int`, default: `0` ) – The maximum number of issues to print.
+- **`sponsorships`** (`bool`, default: `False` ) – Whether to print the sponsorships as main column.
+
+## reserve_pypi
+
+```
+reserve_pypi(
+    username: str, name: str, description: str
+) -> None
+
+```
+
+Reserve a name on PyPI.
+
+Parameters:
+
+- **`username`** (`str`) – Username on PyPI.
+- **`name`** (`str`) – Name to reserve.
+- **`description`** (`str`) – Description of the project on PyPI.
+
+## update_numbers_file
+
+```
+update_numbers_file(
+    sponsorships: list[Sponsorship],
+    filepath: Path = Path("numbers.json"),
+) -> None
+
+```
+
+Update the file storing sponsorship numbers.
+
+Parameters:
+
+- **`sponsorships`** (`list[Sponsorship]`) – List of sponsorships.
+- **`filepath`** (`Path`, default: `Path('numbers.json')` ) – File-path to update.
+
+## update_sponsors_file
+
+```
+update_sponsors_file(
+    sponsorships: list[Sponsorship],
+    filepath: Path = Path("sponsors.json"),
+    *,
+    exclude_private: bool = True,
+) -> None
+
+```
+
+Update the file storing sponsors info.
+
+Parameters:
+
+- **`sponsorships`** (`list[Sponsorship]`) – List of sponsorships.
+- **`filepath`** (`Path`, default: `Path('sponsors.json')` ) – File-path to update.
+- **`exclude_private`** (`bool`, default: `True` ) – Whether to exclude private members.
+
+# **`insiders`**
+
+> Manage your Insiders projects.
+
+This tool lets you manage your local and remote Git repositories for projects that offer an [Insiders](https://user.github.io/insiders/) version.
+
+See the documentation / help text of the different subcommands available.
+
+*Example*
+
+```
+insiders --debug-info
+
+```
+
+| Global Options | Description | Default | | --- | --- | --- | | `-c`, `--config` `CONFIG` | Path to the configuration file. | `/home/user/.config/insiders/insiders.toml` | | `-L`, `--log-level` `LOG_LEVEL` | Lowest log level to display. Levels below that will be hidden. | INFO | | `-P`, `--log-path` `LOG_PATH` | Write log messages to this file path. | standard error | | `--log-include` `LOG_INCLUDE` | Include logs originating from these modules/loggers. By default, all logs are included. | | | `--log-exclude` `LOG_EXCLUDE` | Exclude logs originating from these modules/loggers. Applied after inclusion. By default, nothing is excluded. | | | `--log-downgrade` `LOG_DOWNGRADE` | Downgrade INFO logs to DEBUG for logs originating from these modules/loggers. By default, all dependency logs are downgraded. | |
+
+| Options | Description | Default | | --- | --- | --- | | `-V`, `--version` | Print the program version and exit. | False | | `--debug-info` | Print debug information. | False |
+
+# **`backlog`**
+
+> List the backlog.
+
+List the issues in the backlog.
+
+| Arguments | Description | Default | | --- | --- | --- | | `BACKLOG_NAMESPACES` | Namespaces to fetch issues from. | `BACKLOG_NAMESPACES` env-var or backlog.namespaces config-value |
+
+| Options | Description | Default | | --- | --- | --- | | `-i`, `--issue-labels` `ISSUE_LABELS` | Issue labels to keep in issues metadata, and how they are represented. | backlog.issue-labels config-value | | `-l`, `--limit` `LIMIT` | Limit the number of issues to display. | backlog.limit config-value or `0` | | `-s`, `--sort` `SORT` | Sort strategy. | backlog.sort config-value | | `--public` | Only use public sponsorships. | | | `--plt`, `--polar-token` `POLAR_TOKEN` | A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`. | `POLAR_TOKEN` env-var or backlog.polar-token-command config-value | | `--plb`, `--polar-beneficiaries` `POLAR_BENEFICIARIES` | Beneficiaries of Polar sponsors. | sponsors.polar-beneficiaries config-value | | `--ght`, `--github-token` `GITHUB_TOKEN` | A GitHub token. Recommended scopes: `read:user`. | `GITHUB_TOKEN` env-var or backlog.github-token-command config-value | | `--ghb`, `--github-beneficiaries` `GITHUB_BENEFICIARIES` | Beneficiaries of GitHub sponsors. | sponsors.github-beneficiaries config-value |
+
+# **`index`**
+
+> Manage the local index.
+
+## **`list`**
+
+> List insiders repositories.
+
+List the watched repositories.
+
+| Options | Description | Default | | --- | --- | --- | | `-s`, `--sources-directory` `SOURCES_DIRECTORY` | Directory where the sources are stored. | index.sources-directory config-value or `/home/user/.cache/insiders` | | `-d`, `--distributions-directory` `DISTRIBUTIONS_DIRECTORY` | Directory where the distributions are stored. | index.distributions-directory config-value or `/home/user/.local/share/insiders` | | `-i`, `--dists` | List distributions. | True | | `-p`, `--projects` | List projects. | True |
+
+## **`add`**
+
+> Add insiders repositories.
+
+Add a repository to the watched repositories.
+
+| Arguments | Description | Default | | --- | --- | --- | | `REPOSITORIES` | List of repositories (GitHub namespace/project or Git URL git@host:repo). | |
+
+| Options | Description | Default | | --- | --- | --- | | `-s`, `--sources-directory` `SOURCES_DIRECTORY` | Directory where the sources are stored. | index.sources-directory config-value or `/home/user/.cache/insiders` | | `-d`, `--distributions-directory` `DISTRIBUTIONS_DIRECTORY` | Directory where the distributions are stored. | index.distributions-directory config-value or `/home/user/.local/share/insiders` | | `-u`, `--url` `URL` | URL of the index to upload packages to. | index.url config-value or `http://localhost:31411` |
+
+## **`remove`**
+
+> Remove insiders repositories.
+
+Remove a repository from the watched repositories.
+
+| Arguments | Description | Default | | --- | --- | --- | | `REPOSITORIES` | List of repository names. | |
+
+| Options | Description | Default | | --- | --- | --- | | `-s`, `--sources-directory` `SOURCES_DIRECTORY` | Directory where the sources are stored. | index.sources-directory config-value or `/home/user/.cache/insiders` | | `-d`, `--distributions-directory` `DISTRIBUTIONS_DIRECTORY` | Directory where the distributions are stored. | index.distributions-directory config-value or `/home/user/.local/share/insiders` |
+
+## **`update`**
+
+> Update insiders packages.
+
+Update watched projects.
+
+| Arguments | Description | Default | | --- | --- | --- | | `REPOSITORIES` | List of repository names. | |
+
+| Options | Description | Default | | --- | --- | --- | | `-s`, `--sources-directory` `SOURCES_DIRECTORY` | Directory where the sources are stored. | index.sources-directory config-value or `/home/user/.cache/insiders` | | `-d`, `--distributions-directory` `DISTRIBUTIONS_DIRECTORY` | Directory where the distributions are stored. | index.distributions-directory config-value or `/home/user/.local/share/insiders` | | `-u`, `--url` `URL` | URL of the index to upload packages to. | index.url config-value or `http://localhost:31411` |
+
+## **`start`**
+
+> Start the server.
+
+Start the server in the background.
+
+| Options | Description | Default | | --- | --- | --- | | `-s`, `--sources-directory` `SOURCES_DIRECTORY` | Directory where the sources are stored. | index.sources-directory config-value or `/home/user/.cache/insiders` | | `-d`, `--distributions-directory` `DISTRIBUTIONS_DIRECTORY` | Directory where the distributions are stored. | index.distributions-directory config-value or `/home/user/.local/share/insiders` | | `-u`, `--url` `URL` | URL to serve the index at. | index.url config-value or `http://localhost:31411` | | `-b`, `--background` | Run the server in the background. | index.start-in-background config-value or False | | `-l`, `--log-path` `LOG_PATH` | Where to write index server logs. | index.log-path config-value or standard error |
+
+## **`status`**
+
+> Show the server status.
+
+Show the server status.
+
+## **`stop`**
+
+> Stop the server.
+
+Stop the server.
+
+## **`logs`**
+
+> Show the server logs.
+
+Show the server logs.
+
+# **`project`**
+
+> Manage projects (GitHub and local copies).
+
+## **`create`**
+
+> Create public/insiders repositories.
+
+This command will do several things:
+
+- Create public and insiders repositories on GitHub (using the provided namespace, username, repository name, description, etc.).
+- Clone these two repositories locally (using the provided repository paths).
+- Optionally initialize the public repository by generating initial contents using the specified [Copier](https://copier.readthedocs.io/en/stable/) template and answers.
+- Optionally run a post creation command into the public repository.
+- Pull the public contents into the insiders clone (by declaring an `upstream` remote).
+
+*Example 1 - Project in user's namespace*
+
+The insiders namespace, insiders repository name and username are inferred from the namespace and repository name.
+
+```
+insiders create \
+    -n user \
+    -r mkdocs-ultimate \
+    -d "The ultimate plugin for MkDocs (??)" \
+    -o ~/data/dev \
+    -O ~/data/dev/insiders \
+    -t gh:user/copier-uv
+
+```
+
+*Example 2 - Project in another namespace:*
+
+The insiders namespace, insiders repository name and username are different, so must be provided explicitly:
+
+```
+insiders create \
+    -n mkdocstrings \
+    -r rust \
+    -d "A Rust handler for mkdocstrings" \
+    -o ~/data/dev \
+    -O ~/data/dev/insiders \
+    -N user-insiders \
+    -R mkdocstrings-rust \
+    -u user \
+    -t gh:mkdocstrings/handler-template
+
+```
+
+| Options | Description | Default | | --- | --- | --- | | `-r`, `--repository` `REPOSITORY` | Name of the public repository. | | | `-d`, `--description` `DESCRIPTION` | Shared description. | | | `-n`, `--namespace` `NAMESPACE` | Namespace of the public repository. | project.namespace config-value | | `-o`, `--project-directory` `PROJECT_DIRECTORY` | Directory in which to clone the public repository. | project.directory config-value | | `-R`, `--insiders-repository` `INSIDERS_REPOSITORY` | Name of the insiders repository. | public name | | `-N`, `--insiders-namespace` `INSIDERS_NAMESPACE` | Namespace of the insiders repository. | project.insiders-namespace config-value or public namespace | | `-O`, `--insiders-project-directory` `INSIDERS_PROJECT_DIRECTORY` | Directory in which to clone the insiders repository. | project.insiders-directory config-value | | `-u`, `--github-username` `GITHUB_USERNAME` | GitHub username. | project.github-username config-value or public namespace | | `-t`, `--copier-template` `COPIER_TEMPLATE` | Copier template to generate new projects with. | project.copier-template config-value | | `-a`, `--copier-template-answers` `COPIER_TEMPLATE_ANSWERS` | Copier template answers to use when generating a project. | project.copier-template-answers config-value | | `-x`, `--post-creation-command` `POST_CREATION_COMMAND` | Command to run after creating the public repository. | project.post-creation-command config-value | | `-i`, `--register-on-pypi` | Whether to register the project on PyPI after creating it. | project.register-on-pypi config-value | | `-y`, `--pypi-username` `PYPI_USERNAME` | PyPI username to register the project with. | project.pypi-username config-value |
+
+## **`check`**
+
+> Check public/insiders repositories.
+
+TODO. Check that everything is consistent.
+
+## **`register-pypi`**
+
+> Register a name on PyPI.
+
+This will create a temporary project on your filesystem, then build both source and wheel distributions for it, and upload them to PyPI using Twine.
+
+After that, you will see an initial version 0.0.0 of your project on PyPI.
+
+*Example*
+
+```
+insiders pypi register -u user -n my-new-project -d "My new project!"
+
+```
+
+Credentials must be configured in `~/.pypirc` to allow Twine to push to PyPI. For example, if you use [PyPI API tokens](https://pypi.org/help/#apitoken), add the token to your keyring:
+
+```
+pipx install keyring
+keyring set https://upload.pypi.org/legacy/ __token__
+# __token__ is a literal string, do not replace it with your token.
+# The command will prompt you to paste your token.
+
+```
+
+And configure `~/.pypirc`:
+
+```
+[distutils]
+index-servers =
+    pypi
+
+[pypi]
+username: __token__
+
+```
+
+| Options | Description | Default | | --- | --- | --- | | `-u`, `--username` `USERNAME` | Username on PyPI (your account). | project.pypi-username config-value | | `-n`, `--name` `NAME` | Name to register. | | | `-d`, `--description` `DESCRIPTION` | Description of the project on PyPI. | |
+
+# **`sponsors`**
+
+> Manage sponsors.
+
+## **`list`**
+
+> List sponsors.
+
+List sponsors and non-sponsors benefitting from sponsorships.
+
+| Options | Description | Default | | --- | --- | --- | | `--ghsa`, `--github-sponsored-account` `GITHUB_SPONSORED_ACCOUNT` | The sponsored account on GitHub Sponsors. | sponsors.github-sponsored-account config-value or none | | `--ghiu`, `--github-include-users` `INCLUDE_USERS` | Users that should always be in the team. | sponsors.include-users config-value | | `--gheu`, `--github-exclude-users` `EXCLUDE_USERS` | Users that should never be in the team. | sponsors.exclude-users config-value | | `--ghb`, `--github-beneficiaries` `GITHUB_BENEFICIARIES` | Beneficiaries of GitHub sponsors. | sponsors.github-beneficiaries config-value | | `--ght`, `--github-token` `GITHUB_TOKEN` | A GitHub token. Recommended scopes: `admin:org` and `read:user`. | `GITHUB_TOKEN` env-var or sponsors.github-token-command config-value | | `--plsa`, `--polar-sponsored-account` `POLAR_SPONSORED_ACCOUNT` | The sponsored account on Polar. | sponsors.polar-sponsored-account config-value or none | | `--plb`, `--polar-beneficiaries` `POLAR_BENEFICIARIES` | Beneficiaries of Polar sponsors. | sponsors.polar-beneficiaries config-value | | `--plt`, `--polar-token` `POLAR_TOKEN` | A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`. | `POLAR_TOKEN` env-var or sponsors.polar-token-command config-value | | `-m`, `--minimum-amount` `MINIMUM_AMOUNT` | Minimum amount to be considered an insider. | sponsors.minimum-amount config-value or `0` | | `--public` | Only use public sponsorships. | | | `-S`, `--sponsorships` | List sponsorships rather than users/sponsors. | |
+
+## **`show`**
+
+> Show details about a sponsor/user.
+
+TODO. Show details about a sponsor/user.
+
+| Arguments | Description | Default | | --- | --- | --- | | `INSIDERS_TEAM` | The GitHub team to sync. | sponsors.insiders-team config-value |
+
+| Options | Description | Default | | --- | --- | --- | | `--ghsa`, `--github-sponsored-account` `GITHUB_SPONSORED_ACCOUNT` | The sponsored account on GitHub Sponsors. | sponsors.github-sponsored-account config-value or none | | `--iu`, `--include-users` `INCLUDE_USERS` | Users that should always be in the team. | sponsors.include-users config-value | | `--eu`, `--exclude-users` `EXCLUDE_USERS` | Users that should never be in the team. | sponsors.exclude-users config-value | | `--ghb`, `--github-beneficiaries` `GITHUB_BENEFICIARIES` | A mapping of users belonging to sponsoring organizations. | sponsors.github-beneficiaries config-value | | `--ght`, `--github-token` `GITHUB_TOKEN` | A GitHub token. Recommended scopes: `admin:org` and `read:user`. | `GITHUB_TOKEN` env-var or sponsors.github-token-command config-value | | `--plsa`, `--polar-sponsored-account` `POLAR_SPONSORED_ACCOUNT` | The sponsored account on Polar. | sponsors.polar-sponsored-account config-value or none | | `--plt`, `--polar-token` `POLAR_TOKEN` | A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`. | `POLAR_TOKEN` env-var or sponsors.polar-token-command config-value | | `-m`, `--minimum-amount` `MINIMUM_AMOUNT` | Minimum amount to be considered an insider. | sponsors.minimum-amount config-value or `0` | | `--dry-run` | Display the changes that would be made, without making them. | False |
+
+## **`team-list`**
+
+> List members of a team.
+
+List the members of a GitHub team.
+
+## **`team-sync`**
+
+> Synchronize members of a team with current sponsors.
+
+Fetch current sponsors from GitHub, then grant or revoke access to a GitHub team for eligible sponsors.
+
+| Arguments | Description | Default | | --- | --- | --- | | `INSIDERS_TEAM` | The GitHub team to sync. | sponsors.insiders-team config-value |
+
+| Options | Description | Default | | --- | --- | --- | | `--ghsa`, `--github-sponsored-account` `GITHUB_SPONSORED_ACCOUNT` | The sponsored account on GitHub Sponsors. | sponsors.github-sponsored-account config-value or none | | `--iu`, `--include-users` `INCLUDE_USERS` | Users that should always be in the team. | sponsors.include-users config-value | | `--eu`, `--exclude-users` `EXCLUDE_USERS` | Users that should never be in the team. | sponsors.exclude-users config-value | | `--ghb`, `--github-beneficiaries` `GITHUB_BENEFICIARIES` | A mapping of users belonging to sponsoring organizations. | sponsors.github-beneficiaries config-value | | `--ght`, `--github-token` `GITHUB_TOKEN` | A GitHub token. Recommended scopes: `admin:org` and `read:user`. | `GITHUB_TOKEN` env-var or sponsors.github-token-command config-value | | `--plsa`, `--polar-sponsored-account` `POLAR_SPONSORED_ACCOUNT` | The sponsored account on Polar. | sponsors.polar-sponsored-account config-value or none | | `--plb`, `--polar-beneficiaries` `POLAR_BENEFICIARIES` | Beneficiaries of Polar sponsors. | sponsors.polar-beneficiaries config-value | | `--plt`, `--polar-token` `POLAR_TOKEN` | A Polar token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`. | `POLAR_TOKEN` env-var or sponsors.polar-token-command config-value | | `-m`, `--minimum-amount` `MINIMUM_AMOUNT` | Minimum amount to be considered an insider. | sponsors.minimum-amount config-value or `0` | | `--dry-run` | Display the changes that would be made, without making them. | False |
