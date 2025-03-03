@@ -6,22 +6,22 @@ from typing import Annotated as An
 import httpx
 from typing_extensions import Doc
 
-from insiders._internal.clients import Client
+from insiders._internal.clients import _Client
 from insiders._internal.logger import logger
 from insiders._internal.models import Account, Sponsors, Sponsorship
 
 
-class Polar(Client):
+class Polar(_Client):
     """Polar client."""
 
-    name = "Polar"
+    name: An[str, Doc("Client name.")] = "Polar"
 
     def __init__(
         self,
         token: An[str, Doc("A Polar API token. Recommended scopes: `user:read`, `issues:read`, `subscriptions:read`.")],
     ) -> None:
         """Initialize Polar API client."""
-        self.http_client = httpx.Client(
+        self.http_client: An[httpx.Client, Doc("HTTP client.")] = httpx.Client(
             base_url="https://api.polar.sh",
             headers={
                 "Accept": "application/json",

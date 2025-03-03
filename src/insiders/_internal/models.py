@@ -1,4 +1,4 @@
-"""Sponsors management."""
+# Data models.
 
 from __future__ import annotations
 
@@ -157,14 +157,17 @@ class Issue:
 
     @property
     def interested_users(self) -> set[Account]:
+        """Author and upvoters."""
         return {self.author, *self.upvotes}
 
     @property
     def sponsorships(self) -> set[Sponsorship]:
+        """Sponsorships associated with the issue."""
         return {sponsorship for user in self.interested_users for sponsorship in user.sponsorships}
 
     @property
     def funding(self) -> int:
+        """Total funding for the issue."""
         return sum(sponsorship.amount for sponsorship in self.sponsorships)
 
 
@@ -179,59 +182,86 @@ class Backlog:
 
     class SortStrategy:
         @staticmethod
-        def min_author_sponsorships(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def min_author_sponsorships(
+            amount: An[int, Doc("Minimum amount.")],
+            *,
+            reverse: An[bool, Doc("Sort in reverse.")] = True,
+        ) -> Callable[[Issue], int]:
+            """Sort by minimum author sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (issue.author.tier_sum if issue.author.tier_sum >= amount else 0)
 
         @staticmethod
-        def author_sponsorships(*, reverse: bool = True) -> Callable[[Issue], int]:
+        def author_sponsorships(*, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by author sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * issue.author.tier_sum
 
         @staticmethod
-        def min_upvoters_sponsorships(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def min_upvoters_sponsorships(
+            amount: An[int, Doc("Minimum amount.")],
+            *,
+            reverse: An[bool, Doc("Sort in reverse.")] = True,
+        ) -> Callable[[Issue], int]:
+            """Sort by minimum upvoters sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (
                 total if (total := sum(upvoter.tier_sum for upvoter in issue.upvotes)) >= amount else 0
             )
 
         @staticmethod
-        def upvoters_sponsorships(*, reverse: bool = True) -> Callable[[Issue], int]:
+        def upvoters_sponsorships(*, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by upvoters sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * sum(upvoter.tier_sum for upvoter in issue.upvotes)
 
         @staticmethod
-        def min_sponsorships(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def min_sponsorships(
+            amount: An[int, Doc("Minimum amount.")],
+            *,
+            reverse: An[bool, Doc("Sort in reverse.")] = True,
+        ) -> Callable[[Issue], int]:
+            """Sort by minimum sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (total if (total := issue.funding) >= amount else 0)
 
         @staticmethod
-        def sponsorships(*, reverse: bool = True) -> Callable[[Issue], int]:
+        def sponsorships(*, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by sponsorships."""
             factor = -1 if reverse else 1
             return lambda issue: factor * issue.funding
 
         @staticmethod
-        def min_upvotes(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def min_upvotes(
+            amount: An[int, Doc("Minimum amount.")],
+            *,
+            reverse: An[bool, Doc("Sort in reverse.")] = True,
+        ) -> Callable[[Issue], int]:
+            """Sort by minimum upvotes."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (upvotes if (upvotes := len(issue.upvotes)) >= amount else 0)
 
         @staticmethod
-        def upvotes(*, reverse: bool = True) -> Callable[[Issue], int]:
+        def upvotes(*, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by upvotes."""
             factor = -1 if reverse else 1
             return lambda issue: factor * len(issue.upvotes)
 
         @staticmethod
-        def created(*, reverse: bool = False) -> Callable[[Issue], int]:
+        def created(*, reverse: An[bool, Doc("Sort in reverse.")] = False) -> Callable[[Issue], int]:
+            """Sort by creation date."""
             factor = -1 if reverse else 1
             return lambda issue: factor * int(issue.created.timestamp())
 
         @staticmethod
-        def label(name: str, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def label(name: str, *, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by label presence."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (1 if name in issue.labels else 0)
 
         @staticmethod
-        def repository(name: str, *, reverse: bool = True) -> Callable[[Issue], int]:
+        def repository(name: str, *, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by repository."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (1 if fnmatch(issue.repository, name) else 0)
 

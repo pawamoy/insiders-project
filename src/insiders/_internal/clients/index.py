@@ -1,4 +1,4 @@
-"""Manage PyPI-like index."""
+# Manage PyPI-like index.
 
 from __future__ import annotations
 
@@ -189,18 +189,19 @@ class Index:
         Parameters:
             conf_path: The path to the configuration file.
         """
-        self.url: str = url
-        self.git_dir: Path = git_dir
-        self.dist_dir: Path = dist_dir
+        self.url: An[str, Doc("The URL of the index.")] = url
+        self.git_dir: An[Path, Doc("The directory in which to clone the repositories.")] = git_dir
+        self.dist_dir: An[Path, Doc("The directory in which to store the distributions.")] = dist_dir
 
         parsed = urlparse(url)
-        self.port = parsed.port or 80
+        self.port: An[int, Doc("The port of the index server.")] = parsed.port or 80
 
         self.dist_dir.mkdir(parents=True, exist_ok=True)
         self._git_cache = GitCache(self.git_dir)
         self._finder = PackageFinder(index_urls=[f"{self.url}/simple"])
 
     def add(self, git_url: str, repo: str | None = None) -> None:
+        """Add a repository to the index."""
         repo = repo or git_url.split("/")[-1].replace(".git", "")
         cache = self._git_cache
         if not cache.exists(repo):
@@ -209,6 +210,7 @@ class Index:
             self.upload(cache.build(repo))
 
     def remove(self, repo: str) -> None:
+        """Remove a repository from the index."""
         try:
             dist_name = self._git_cache.dist_name(repo).replace("-", "_")
         except FileNotFoundError:
@@ -219,9 +221,11 @@ class Index:
             dist.unlink()
 
     def list_distributions(self) -> Iterator[Path]:
+        """List the distributions in the index."""
         yield from self.dist_dir.iterdir()
 
     def list_projects(self) -> Iterator[Path]:
+        """List the projects in the index."""
         yield from self._git_cache.cache_dir.iterdir()
 
     def update(self, projects: Iterable[str] | None = None) -> None:

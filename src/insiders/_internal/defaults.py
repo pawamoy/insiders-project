@@ -1,4 +1,4 @@
-"""Default values throughout the project."""
+# Default values throughout the project.
 
 from __future__ import annotations
 

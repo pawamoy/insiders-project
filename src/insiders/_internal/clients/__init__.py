@@ -13,12 +13,11 @@ if TYPE_CHECKING:
     from insiders._internal.models import Sponsors
 
 
-class Client:
+class _Client:
     name: An[str, Doc("Name of the platform.")]
     http_client: An[httpx.Client, Doc("""An HTTPX client.""")]
 
     def __enter__(self) -> Self:
-        """Enter context manager."""
         self.http_client.__enter__()
         return self
 
@@ -28,7 +27,6 @@ class Client:
         exc_value: BaseException | None = None,
         traceback: TracebackType | None = None,
     ) -> None:
-        """Exit context manager."""
         self.http_client.__exit__(exc_type, exc_value, traceback)
 
     def get_sponsors(self, *, exclude_private: bool = False) -> Sponsors:

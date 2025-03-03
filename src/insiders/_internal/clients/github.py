@@ -7,7 +7,7 @@ from typing import Annotated as An
 import httpx
 from typing_extensions import Doc
 
-from insiders._internal.clients import Client
+from insiders._internal.clients import _Client
 from insiders._internal.logger import logger
 from insiders._internal.models import Account, Beneficiary, Issue, IssueDict, Sponsors, Sponsorship
 
@@ -98,17 +98,17 @@ query {
 """
 
 
-class GitHub(Client):
+class GitHub(_Client):
     """GitHub client."""
 
-    name = "GitHub"
+    name: An[str, Doc("The name of the client.")] = "GitHub"
 
     def __init__(
         self,
         token: An[str, Doc("""A GitHub token. Recommended scopes: `admin:org` and `read:user`.""")],
     ) -> None:
         """Initialize GitHub API client."""
-        self.http_client = httpx.Client(
+        self.http_client: An[httpx.Client, Doc("HTTP client.")] = httpx.Client(
             base_url="https://api.github.com",
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -217,9 +217,13 @@ class GitHub(Client):
 
     def consolidate_beneficiaries(
         self,
-        sponsors: Sponsors,
-        beneficiaries: Mapping[str, Mapping[str, Iterable[str | Mapping[str, str | bool]]]],
+        sponsors: An[Sponsors, Doc("Sponsors data.")],
+        beneficiaries: An[
+            Mapping[str, Mapping[str, Iterable[str | Mapping[str, str | bool]]]],
+            Doc("Beneficiaries data. It's a mapping of platform to account name to a list of beneficiaries."),
+        ],
     ) -> None:
+        """Consolidate beneficiaries from sponsors data."""
         github_accounts = {account.name: account for account in sponsors.accounts if account.platform == "github"}
         for sponsorship in sponsors.sponsorships:
             # Always add sponsorship account as beneficiary, expanding organizations.

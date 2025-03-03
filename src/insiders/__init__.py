@@ -5,7 +5,29 @@ Manage your Insiders projects.
 
 from __future__ import annotations
 
-from insiders._internal.cli import main
+from insiders._internal.cli import (
+    CommandBacklog,
+    CommandIndex,
+    CommandIndexAdd,
+    CommandIndexList,
+    CommandIndexLogs,
+    CommandIndexRemove,
+    CommandIndexStart,
+    CommandIndexStatus,
+    CommandIndexStop,
+    CommandIndexUpdate,
+    CommandMain,
+    CommandProject,
+    CommandProjectCheck,
+    CommandProjectCreate,
+    CommandProjectPyPIRegister,
+    CommandSponsors,
+    CommandSponsorsList,
+    CommandSponsorsShow,
+    CommandSponsorsTeamList,
+    CommandSponsorsTeamSync,
+    main,
+)
 from insiders._internal.clients.github import GitHub
 from insiders._internal.clients.index import Index
 from insiders._internal.clients.polar import Polar
@@ -17,6 +39,26 @@ from insiders._internal.ops.report import update_numbers_file, update_sponsors_f
 __all__: list[str] = [
     "Account",
     "Backlog",
+    "CommandBacklog",
+    "CommandIndex",
+    "CommandIndexAdd",
+    "CommandIndexList",
+    "CommandIndexLogs",
+    "CommandIndexRemove",
+    "CommandIndexStart",
+    "CommandIndexStatus",
+    "CommandIndexStop",
+    "CommandIndexUpdate",
+    "CommandMain",
+    "CommandProject",
+    "CommandProjectCheck",
+    "CommandProjectCreate",
+    "CommandProjectPyPIRegister",
+    "CommandSponsors",
+    "CommandSponsorsList",
+    "CommandSponsorsShow",
+    "CommandSponsorsTeamList",
+    "CommandSponsorsTeamSync",
     "Config",
     "GitHub",
     "Index",

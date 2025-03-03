@@ -45,7 +45,7 @@ _GROUP_SUBCOMMANDS = (40, "Subcommands")
 
 
 @dataclass(frozen=True)
-class FromConfig(cappa.ValueFrom):
+class _FromConfig(cappa.ValueFrom):
     def __init__(self, field: Unset | property, /) -> None:
         attr_name = field.fget.__name__ if isinstance(field, property) else field.name  # type: ignore[union-attr]
         super().__init__(self._from_config, attr_name=attr_name)
@@ -82,7 +82,7 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=False,
-            default=cappa.Env("BACKLOG_NAMESPACES") | FromConfig(Config.backlog_namespaces),
+            default=cappa.Env("BACKLOG_NAMESPACES") | _FromConfig(Config.backlog_namespaces),
             show_default=f"`BACKLOG_NAMESPACES` env-var or {Config.backlog_namespaces}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -94,7 +94,7 @@ class CommandBacklog:
         cappa.Arg(
             short="-i",
             long=True,
-            default=FromConfig(Config.backlog_issue_labels),
+            default=_FromConfig(Config.backlog_issue_labels),
             show_default=f"{Config.backlog_issue_labels}",
             group=_GROUP_OPTIONS,
         ),
@@ -106,7 +106,7 @@ class CommandBacklog:
         cappa.Arg(
             short="-l",
             long=True,
-            default=FromConfig(Config.backlog_limit),
+            default=_FromConfig(Config.backlog_limit),
             show_default=f"{Config.backlog_limit} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -119,7 +119,7 @@ class CommandBacklog:
             short="-s",
             long=True,
             parse=_parse_sort,
-            default=FromConfig(Config.backlog_sort),
+            default=_FromConfig(Config.backlog_sort),
             show_default=f"{Config.backlog_sort}",
             group=_GROUP_OPTIONS,
         ),
@@ -137,7 +137,7 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.backlog_polar_token),
+            default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.backlog_polar_token),
             show_default="`POLAR_TOKEN` env-var or `backlog.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -149,7 +149,7 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=("--plb", "--polar-beneficiaries"),
-            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -161,7 +161,7 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.backlog_github_token),
+            default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.backlog_github_token),
             show_default="`GITHUB_TOKEN` env-var or `backlog.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -173,14 +173,15 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=("--ghb", "--github-beneficiaries"),
-            default=FromConfig(Config.sponsors_github_beneficiaries),
+            default=_FromConfig(Config.sponsors_github_beneficiaries),
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
         Doc("""Beneficiaries of GitHub sponsors."""),
     ] = field(default_factory=dict)
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         github_context = GitHub(self.github_token)
         polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
         with github_context as github, polar_context as polar, Console().status("") as status:
@@ -244,7 +245,7 @@ class CommandIndexList:
         cappa.Arg(
             short="-s",
             long=True,
-            default=FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -256,7 +257,7 @@ class CommandIndexList:
         cappa.Arg(
             short="-d",
             long=True,
-            default=FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -275,7 +276,8 @@ class CommandIndexList:
         Doc("List projects."),
     ] = False
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index(git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         if self.dists is self.projects:
             print("Distributions:")
@@ -313,7 +315,7 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-s",
             long=True,
-            default=FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -325,7 +327,7 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-d",
             long=True,
-            default=FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -337,14 +339,15 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-u",
             long=True,
-            default=FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
         Doc("URL of the index to upload packages to."),
     ] = defaults.DEFAULT_INDEX_URL
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         for project in self.repositories:
             index.add(project if project.startswith("git@") else f"git@github.com:{project}")
@@ -371,7 +374,7 @@ class CommandIndexRemove:
         cappa.Arg(
             short="-s",
             long=True,
-            default=FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -383,14 +386,15 @@ class CommandIndexRemove:
         cappa.Arg(
             short="-d",
             long=True,
-            default=FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
         Doc("Directory where the distributions are stored."),
     ] = defaults.DEFAULT_DIST_DIR
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index(git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         for repo in self.repositories:
             index.remove(repo)
@@ -417,7 +421,7 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-s",
             long=True,
-            default=FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -429,7 +433,7 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-d",
             long=True,
-            default=FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -441,14 +445,15 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-u",
             long=True,
-            default=FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
         Doc("URL of the index to upload packages to."),
     ] = defaults.DEFAULT_INDEX_URL
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         index.update(self.repositories)
         return 0
@@ -468,7 +473,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-s",
             long=True,
-            default=FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -480,7 +485,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-d",
             long=True,
-            default=FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -492,7 +497,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-u",
             long=True,
-            default=FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -504,7 +509,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-b",
             long=True,
-            default=FromConfig(Config.index_start_in_background),
+            default=_FromConfig(Config.index_start_in_background),
             show_default=f"{Config.index_start_in_background} or {{default}}",
             group=_GROUP_OPTIONS,
         ),
@@ -516,14 +521,15 @@ class CommandIndexStart:
         cappa.Arg(
             short="-l",
             long=True,
-            default=FromConfig(Config.index_log_path),
+            default=_FromConfig(Config.index_log_path),
             show_default=f"{Config.index_log_path} or standard error",
             group=_GROUP_OPTIONS,
         ),
         Doc("Where to write index server logs."),
     ] = None
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index(url=self.url, git_dir=self.sources_directory, dist_dir=self.distributions_directory)
         index.start(background=self.background, log_path=self.log_path)
         return 0
@@ -538,7 +544,8 @@ class CommandIndexStart:
 class CommandIndexStatus:
     """Command to show the server status."""
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         proc_data = Index().status()
         if proc_data:
             print("Running:")
@@ -557,7 +564,8 @@ class CommandIndexStatus:
 class CommandIndexStop:
     """Command to stop the server."""
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         return 0 if Index().stop() else 1
 
 
@@ -570,7 +578,8 @@ class CommandIndexStop:
 class CommandIndexLogs:
     """Command to show the server logs."""
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         index = Index()
         try:
             print(index.logs())
@@ -669,7 +678,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-n",
             long=True,
-            default=FromConfig(Config.project_namespace),
+            default=_FromConfig(Config.project_namespace),
             show_default=f"{Config.project_namespace}",
             group=_GROUP_OPTIONS,
         ),
@@ -681,7 +690,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-o",
             long=True,
-            default=FromConfig(Config.project_directory),
+            default=_FromConfig(Config.project_directory),
             show_default=f"{Config.project_directory}",
             group=_GROUP_OPTIONS,
         ),
@@ -699,7 +708,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-N",
             long=True,
-            default=FromConfig(Config.project_insiders_namespace),
+            default=_FromConfig(Config.project_insiders_namespace),
             show_default=f"{Config.project_insiders_namespace} or public namespace",
             group=_GROUP_OPTIONS,
         ),
@@ -711,7 +720,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-O",
             long=True,
-            default=FromConfig(Config.project_insiders_directory),
+            default=_FromConfig(Config.project_insiders_directory),
             show_default=f"{Config.project_insiders_directory}",
             group=_GROUP_OPTIONS,
         ),
@@ -723,7 +732,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-u",
             long=True,
-            default=FromConfig(Config.project_github_username),
+            default=_FromConfig(Config.project_github_username),
             show_default=f"{Config.project_github_username} or public namespace",
             group=_GROUP_OPTIONS,
         ),
@@ -735,7 +744,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-t",
             long=True,
-            default=FromConfig(Config.project_copier_template),
+            default=_FromConfig(Config.project_copier_template),
             show_default=f"{Config.project_copier_template}",
             group=_GROUP_OPTIONS,
         ),
@@ -752,7 +761,7 @@ class CommandProjectCreate:
             short="-a",
             long=True,
             parse=_parse_dict,
-            default=FromConfig(Config.project_copier_template_answers),
+            default=_FromConfig(Config.project_copier_template_answers),
             show_default=f"{Config.project_copier_template_answers}",
             group=_GROUP_OPTIONS,
         ),
@@ -766,7 +775,7 @@ class CommandProjectCreate:
             long=True,
             num_args=1,
             parse=shlex.split,
-            default=FromConfig(Config.project_post_creation_command),
+            default=_FromConfig(Config.project_post_creation_command),
             show_default=f"{Config.project_post_creation_command}",
             group=_GROUP_OPTIONS,
         ),
@@ -778,7 +787,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-i",
             long=True,
-            default=FromConfig(Config.project_register_on_pypi),
+            default=_FromConfig(Config.project_register_on_pypi),
             show_default=f"{Config.project_register_on_pypi}",
             group=_GROUP_OPTIONS,
         ),
@@ -790,14 +799,15 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-y",
             long=True,
-            default=FromConfig(Config.project_pypi_username),
+            default=_FromConfig(Config.project_pypi_username),
             show_default=f"{Config.project_pypi_username}",
             group=_GROUP_OPTIONS,
         ),
         Doc("""PyPI username to register the project with."""),
     ] = None
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         new_public_and_insiders_github_projects(
             public_namespace=self.namespace,
             public_name=self.repository,
@@ -837,7 +847,8 @@ class CommandProjectCreate:
 class CommandProjectCheck:
     """Command to check GitHub projects."""
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         raise cappa.Exit("Not implemented yet.", code=1)
 
 
@@ -892,7 +903,7 @@ class CommandProjectPyPIRegister:
         cappa.Arg(
             short="-u",
             long=True,
-            default=FromConfig(Config.project_pypi_username),
+            default=_FromConfig(Config.project_pypi_username),
             show_default=f"{Config.project_pypi_username}",
             group=_GROUP_OPTIONS,
         ),
@@ -912,6 +923,7 @@ class CommandProjectPyPIRegister:
     ]
 
     def __call__(self) -> Any:
+        """Run the command."""
         pypi.reserve_pypi(self.username, self.name, self.description)
         return 0
 
@@ -949,7 +961,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--ghsa", "--github-sponsored-account"),
-            default=FromConfig(Config.sponsors_github_sponsored_account),
+            default=_FromConfig(Config.sponsors_github_sponsored_account),
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -961,7 +973,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--ghiu", "--github-include-users"),
-            default=FromConfig(Config.sponsors_include_users),
+            default=_FromConfig(Config.sponsors_include_users),
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -973,7 +985,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--gheu", "--github-exclude-users"),
-            default=FromConfig(Config.sponsors_exclude_users),
+            default=_FromConfig(Config.sponsors_exclude_users),
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -985,7 +997,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--ghb", "--github-beneficiaries"),
-            default=FromConfig(Config.sponsors_github_beneficiaries),
+            default=_FromConfig(Config.sponsors_github_beneficiaries),
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -997,7 +1009,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1009,7 +1021,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--plsa", "--polar-sponsored-account"),
-            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1021,7 +1033,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--plb", "--polar-beneficiaries"),
-            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1033,7 +1045,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short=False,
             long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1045,7 +1057,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short="-m",
             long=True,
-            default=FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1064,7 +1076,8 @@ class CommandSponsorsList:
         Doc("List sponsorships rather than users/sponsors."),
     ] = False
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         github_context = GitHub(self.github_token) if self.github_token else nullcontext()
         polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
         with github_context as github, polar_context as polar, Console().status("") as status:
@@ -1104,7 +1117,7 @@ class CommandSponsorsShow:
             short=False,
             long=False,
             num_args=1,
-            default=FromConfig(Config.sponsors_insiders_team),
+            default=_FromConfig(Config.sponsors_insiders_team),
             show_default=f"{Config.sponsors_insiders_team}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -1116,7 +1129,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--ghsa", "--github-sponsored-account"),
-            default=FromConfig(Config.sponsors_github_sponsored_account),
+            default=_FromConfig(Config.sponsors_github_sponsored_account),
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1128,7 +1141,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--iu", "--include-users"),
-            default=FromConfig(Config.sponsors_include_users),
+            default=_FromConfig(Config.sponsors_include_users),
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1140,7 +1153,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--eu", "--exclude-users"),
-            default=FromConfig(Config.sponsors_exclude_users),
+            default=_FromConfig(Config.sponsors_exclude_users),
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1152,7 +1165,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--ghb", "--github-beneficiaries"),
-            default=FromConfig(Config.sponsors_github_beneficiaries),
+            default=_FromConfig(Config.sponsors_github_beneficiaries),
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1164,7 +1177,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1176,7 +1189,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--plsa", "--polar-sponsored-account"),
-            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1188,7 +1201,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short=False,
             long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1200,7 +1213,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short="-m",
             long=True,
-            default=FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1213,7 +1226,8 @@ class CommandSponsorsShow:
         Doc("Display the changes that would be made, without making them."),
     ] = False
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         raise NotImplementedError("Not implemented yet.")
 
 
@@ -1230,7 +1244,8 @@ class CommandSponsorsShow:
 class CommandSponsorsTeamList:
     """Command to list team memberships."""
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         raise cappa.Exit("Not implemented yet.", code=1)
 
 
@@ -1255,7 +1270,7 @@ class CommandSponsorsTeamSync:
             short=False,
             long=False,
             num_args=1,
-            default=FromConfig(Config.sponsors_insiders_team),
+            default=_FromConfig(Config.sponsors_insiders_team),
             show_default=f"{Config.sponsors_insiders_team}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -1267,7 +1282,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--ghsa", "--github-sponsored-account"),
-            default=FromConfig(Config.sponsors_github_sponsored_account),
+            default=_FromConfig(Config.sponsors_github_sponsored_account),
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1279,7 +1294,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--iu", "--include-users"),
-            default=FromConfig(Config.sponsors_include_users),
+            default=_FromConfig(Config.sponsors_include_users),
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1291,7 +1306,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--eu", "--exclude-users"),
-            default=FromConfig(Config.sponsors_exclude_users),
+            default=_FromConfig(Config.sponsors_exclude_users),
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1303,7 +1318,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--ghb", "--github-beneficiaries"),
-            default=FromConfig(Config.sponsors_github_beneficiaries),
+            default=_FromConfig(Config.sponsors_github_beneficiaries),
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1315,7 +1330,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--ght", "--github-token"),
-            default=cappa.Env("GITHUB_TOKEN") | FromConfig(Config.sponsors_github_token),
+            default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1327,7 +1342,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--plsa", "--polar-sponsored-account"),
-            default=FromConfig(Config.sponsors_polar_sponsored_account),
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1339,7 +1354,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--plb", "--polar-beneficiaries"),
-            default=FromConfig(Config.sponsors_polar_beneficiaries),
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1351,7 +1366,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short=False,
             long=("--plt", "--polar-token"),
-            default=cappa.Env("POLAR_TOKEN") | FromConfig(Config.sponsors_polar_token),
+            default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
         ),
@@ -1363,7 +1378,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short="-m",
             long=True,
-            default=FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1376,7 +1391,8 @@ class CommandSponsorsTeamSync:
         Doc("Display the changes that would be made, without making them."),
     ] = False
 
-    def __call__(self) -> int:
+    def __call__(self) -> An[int, Doc("Return code.")]:
+        """Run the command."""
         github_context = GitHub(self.github_token)
         polar_context = Polar(self.polar_token) if self.polar_token else nullcontext()
         with github_context as github, polar_context as polar, Console().status("") as status:
