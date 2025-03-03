@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [4.0.0](https://github.com/pawamoy/insiders-project/releases/tag/4.0.0) - 2025-03-03
+
+<small>[Compare with 3.0.0](https://github.com/pawamoy/insiders-project/compare/3.0.0...4.0.0)</small>
+
+### Breaking changes
+
+- `Polar.get_issues`: *Public object was removed*
+- `Backlog.SortStrategy.min_pledge`: *Public object was removed*
+- `Backlog.SortStrategy.pledge`: *Public object was removed*
+- `Issue.pledged`: *Public object was removed*
+- `Issue.platform`: *Public object was removed*
+- `Issue(pledged)`: *Parameter was removed*
+- `Issue(platform)`: *Parameter was removed*
+- `IssueDict`: *Public object was removed*
+- `get_backlog(polar)`: *Parameter was removed*
+- `get_backlog(sponsors)`: *Positional parameter was moved*
+- `get_backlog(issue_labels)`: *Positional parameter was moved*
+
+### Build
+
+- Stop depending on pypi-insiders ([a6b2473](https://github.com/pawamoy/insiders-project/commit/a6b2473d7a4cfd42e815b2f0321fc736dee12854) by Timothée Mazzucotelli).
+
+### Bug Fixes
+
+- Fix checking issue funding when building backlog ([773986b](https://github.com/pawamoy/insiders-project/commit/773986b2da26cfe9f98f084adc644ff531a9c035) by Timothée Mazzucotelli).
+- Fix Polar metadata key ([157ce94](https://github.com/pawamoy/insiders-project/commit/157ce9439c8c047c99e5448e5f6db94493e6ba9d) by Timothée Mazzucotelli).
+- Fix in-place add for sponsors class ([4f8161f](https://github.com/pawamoy/insiders-project/commit/4f8161fbb1bf169b44940626dd9a7afa46616c52) by Timothée Mazzucotelli).
+
+### Code Refactoring
+
+- Synchronize API and inventory again, cleanup ([27b45d7](https://github.com/pawamoy/insiders-project/commit/27b45d7b89a1b23f4c7d80c4f473980516a7f1bd) by Timothée Mazzucotelli).
+- Synchronize public API and objects inventory ([37ddd00](https://github.com/pawamoy/insiders-project/commit/37ddd000c1d69b71d20051980150a379288e931d) by Timothée Mazzucotelli).
+- Remove boost feature (issue funding discontinued by Polar) ([b62d293](https://github.com/pawamoy/insiders-project/commit/b62d293dd62ba50c24f6e3aa399d0b606d9b627c) by Timothée Mazzucotelli).
+- Remove unused org field on beneficiary class ([4943556](https://github.com/pawamoy/insiders-project/commit/4943556e86b46d0669211b193aec3fe441c348ef) by Timothée Mazzucotelli).
+
 ## [3.0.0](https://github.com/pawamoy/insiders-project/releases/tag/3.0.0) - 2025-02-08
 
 Big refactoring again. Configuration and models changed in a breaking way.
