@@ -36,8 +36,6 @@ Run `insiders -h` to see where the configuration file is found. Example configur
 # --------------------------------------------------------------------------- #
 # The `backlog` command prints a list of issues from GitHub repositories.
 # It is used to keep track of what needs to be done, and to prioritize tasks.
-# It integrates with sponsorships and issue boosts to let your sponsors
-# influence the priority of issues.
 [backlog]
 
 # GitHub namespaces (user accounts / organizations) from which to fetch issues.
@@ -62,11 +60,6 @@ sort = [
 
 # A shell command to get your GitHub token.
 github-token-command = "command to echo token"
-
-# The backlog supports issue "boosts" (funding) via Polar.
-# If you have a Polar account and enabled Issue Funding,
-# you can configure it here.
-polar-token-command = "command to echo token"
 
 # A map of labels to emojis, for shorter display in the backlog.
 [backlog.issue-labels]
