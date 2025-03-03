@@ -136,6 +136,7 @@ def test_single_locations(public_api: griffe.Module) -> None:
 def test_api_matches_inventory(inventory: Inventory, public_objects: list[griffe.Object | griffe.Alias]) -> None:
     """All public objects are added to the inventory."""
     ignore_names = {
+        "__bool__",
         "__enter__",
         "__eq__",
         "__exit__",

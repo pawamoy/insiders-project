@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, TypeAlias
 from typing import Annotated as An
 
 from typing_extensions import Doc, Self
@@ -13,8 +13,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-SponsorshipPlatform = An[Literal["github", "polar", "kofi"], Doc("The supported sponsorship platforms.")]
-IssuePlatform = An[Literal["github", "polar"], Doc("The supported issue platforms.")]
+SponsorshipPlatform: An[TypeAlias, Doc("The supported sponsorship platforms.")] = Literal["github", "polar"]
 
 
 @dataclass(kw_only=True, eq=False, frozen=True)
@@ -50,7 +49,7 @@ class Account:
         if not self.url:
             object.__setattr__(self, "url", self._PLATFORM_URL.get(self.platform, "").format(user=self.name) or None)
 
-    def __eq__(self, other: An[object, Doc("The other object to compare to.")]) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Account):
             return NotImplemented
         return self.platform == other.platform and self.name == other.name
@@ -116,13 +115,16 @@ class Sponsors:
     sponsorships: An[list[Sponsorship], Doc("Sponsorships.")] = field(default_factory=list)
 
     def __add__(self, other: Sponsors) -> Sponsors:
+        """Combine two Sponsors instances into a new one."""
         return Sponsors(sponsorships=self.sponsorships + other.sponsorships)
 
     def __iadd__(self, other: Sponsors) -> Self:
+        """Merge a second Sponsors instance into the current one."""
         self.sponsorships.extend(other.sponsorships)
         return self
 
-    def merge(self, other: Sponsors) -> Sponsors:
+    def merge(self, other: Sponsors) -> Self:
+        """Merge a second Sponsors instance into the current one."""
         self.sponsorships.extend(other.sponsorships)
         return self
 
@@ -153,7 +155,6 @@ class Issue:
     author: An[Account, Doc("The issue author.")]
     upvotes: An[set[Account], Doc("The issue upvotes / upvoters.")] = field(default_factory=set)
     labels: An[set[str], Doc("The issue labels.")] = field(default_factory=set)
-    platform: An[IssuePlatform, Doc("The issue platform.")]
 
     @property
     def interested_users(self) -> set[Account]:
@@ -169,9 +170,6 @@ class Issue:
     def funding(self) -> int:
         """Total funding for the issue."""
         return sum(sponsorship.amount for sponsorship in self.sponsorships)
-
-
-IssueDict = An[dict[tuple[str, str], Issue], Doc("A dictionary of issues.")]
 
 
 @dataclass(kw_only=True, eq=False, frozen=True)

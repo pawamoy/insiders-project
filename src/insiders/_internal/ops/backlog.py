@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from typing_extensions import Doc
 
-from insiders._internal.logger import logger
+from insiders._internal.logger import _logger
 from insiders._internal.models import Backlog
 
 if TYPE_CHECKING:
@@ -57,7 +57,8 @@ def get_backlog(
     sponsors: Sponsors | None = None,
     issue_labels: set[str] | None = None,
 ) -> Backlog:
+    """Get the backlog."""
     github_users = {beneficiary.user for beneficiary in sponsors.beneficiaries.values()} if sponsors else None
     github_issues = github.get_issues(github_namespaces, github_users, allow_labels=issue_labels)
-    logger.debug(f"Got {len(github_issues)} issues from GitHub")
+    _logger.debug(f"Got {len(github_issues)} issues from GitHub")
     return Backlog(issues=list(github_issues.values()))

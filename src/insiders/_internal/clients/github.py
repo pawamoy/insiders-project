@@ -8,8 +8,8 @@ import httpx
 from typing_extensions import Doc
 
 from insiders._internal.clients import _Client
-from insiders._internal.logger import logger
-from insiders._internal.models import Account, Beneficiary, Issue, IssueDict, Sponsors, Sponsorship
+from insiders._internal.logger import _logger
+from insiders._internal.models import Account, Beneficiary, Issue, Sponsors, Sponsorship
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -148,14 +148,14 @@ class GitHub(_Client):
         exclude_private: bool = False,
     ) -> An[Sponsors, Doc("Sponsors data.")]:
         """Get GitHub sponsors."""
-        logger.debug("Fetching sponsors from GitHub.")
+        _logger.debug("Fetching sponsors from GitHub.")
         sponsorships = []
         accounts = {}
         cursor = "null"
 
         while True:
             # Get sponsors data.
-            logger.debug(f"Fetching page of sponsors from GitHub with cursor {cursor}.")
+            _logger.debug(f"Fetching page of sponsors from GitHub with cursor {cursor}.")
             payload = {"query": _GRAPHQL_SPONSORS_QUERY % cursor}
             response = self.http_client.post("/graphql", json=payload)
             response.raise_for_status()
@@ -179,7 +179,7 @@ class GitHub(_Client):
                 }
 
                 account = Account(**account_data)
-                logger.debug(f"Found {'org' if account.is_org else 'user'}: @{account.name}")
+                _logger.debug(f"Found {'org' if account.is_org else 'user'}: @{account.name}")
                 accounts[account.name] = account
 
                 # Record sponsorship.
@@ -286,7 +286,7 @@ class GitHub(_Client):
         team: An[str, Doc("The team name.")],
     ) -> An[set[str], Doc("A set of member names.")]:
         """Get members of a GitHub team."""
-        logger.debug(f"Fetching members of {org}/{team} team.")
+        _logger.debug(f"Fetching members of {org}/{team} team.")
         page = 1
         members = set()
         while True:
@@ -305,7 +305,7 @@ class GitHub(_Client):
         team: An[str, Doc("The team name.")],
     ) -> An[set[str], Doc("A set of member names.")]:
         """Get pending invitations to a GitHub team."""
-        logger.debug(f"Fetching pending invitations to {org}/{team} team.")
+        _logger.debug(f"Fetching pending invitations to {org}/{team} team.")
         page = 1
         invites = set()
         while True:
@@ -322,7 +322,7 @@ class GitHub(_Client):
         self,
         org: An[str, Doc("The organization name.")],
     ) -> An[set[str], Doc("A set of member names.")]:
-        logger.debug(f"Fetching failed invitations to {org} organization.")
+        _logger.debug(f"Fetching failed invitations to {org} organization.")
         page = 1
         invites = set()
         while True:
@@ -342,18 +342,18 @@ class GitHub(_Client):
         team: An[str, Doc("A team name.")],
     ) -> None:
         """Grant access to a user to a GitHub team."""
-        logger.debug(f"Granting @{user} access to {org}/{team} team.")
+        _logger.debug(f"Granting @{user} access to {org}/{team} team.")
         response = self.http_client.put(f"/orgs/{org}/teams/{team}/memberships/{user}")
         response.raise_for_status()
         # try:
         #     response.raise_for_status()
         # except httpx.HTTPError as error:
-        #     logger.error(f"Couldn't add @{user} to {org}/{team} team: {error}")
+        #     _logger.error(f"Couldn't add @{user} to {org}/{team} team: {error}")
         #     if response.content:
         #         response_body = response.json()
-        #         logger.error(f"{response_body['message']} See {response_body['documentation_url']}")
+        #         _logger.error(f"{response_body['message']} See {response_body['documentation_url']}")
         # else:
-        #     logger.info(f"@{user} added to {org}/{team} team")
+        #     _logger.info(f"@{user} added to {org}/{team} team")
 
     def revoke_access(
         self,
@@ -362,18 +362,18 @@ class GitHub(_Client):
         team: An[str, Doc("A team name.")],
     ) -> None:
         """Revoke access from a user to a GitHub team."""
-        logger.debug(f"Revoking access from @{user} to {org}/{team} team.")
+        _logger.debug(f"Revoking access from @{user} to {org}/{team} team.")
         response = self.http_client.delete(f"/orgs/{org}/teams/{team}/memberships/{user}")
         response.raise_for_status()
         # try:
         #     response.raise_for_status()
         # except httpx.HTTPError as error:
-        #     logger.error(f"Couldn't remove @{user} from {org}/{team} team: {error}")
+        #     _logger.error(f"Couldn't remove @{user} from {org}/{team} team: {error}")
         #     if response.content:
         #         response_body = response.json()
-        #         logger.error(f"{response_body['message']} See {response_body['documentation_url']}")
+        #         _logger.error(f"{response_body['message']} See {response_body['documentation_url']}")
         # else:
-        #     logger.info(f"@{user} removed from {org}/{team} team")
+        #     _logger.info(f"@{user} removed from {org}/{team} team")
 
     def get_issues(
         self,
@@ -381,9 +381,9 @@ class GitHub(_Client):
         known_github_users: An[Iterable[Account] | None, Doc("Known user accounts.")] = None,
         *,
         allow_labels: An[set[str] | None, Doc("A set of labels to keep.")] = None,
-    ) -> An[IssueDict, Doc("A dictionary of issues.")]:
+    ) -> An[dict[tuple[str, str], Issue], Doc("A dictionary of issues.")]:
         """Get issues from GitHub."""
-        logger.debug("Fetching issues from GitHub.")
+        _logger.debug("Fetching issues from GitHub.")
 
         known_users = {account.name: account for account in (known_github_users or ())}
         issues = {}
@@ -394,7 +394,7 @@ class GitHub(_Client):
 
         while True:
             # Get issues data.
-            logger.debug(f"Fetching page of issues from GitHub with cursor {cursor}.")
+            _logger.debug(f"Fetching page of issues from GitHub with cursor {cursor}.")
             payload = {"query": _GRAPHQL_ISSUES_QUERY % {"after": cursor, "query": query}}
             response = self.http_client.post("/graphql", json=payload)
             response.raise_for_status()
@@ -433,7 +433,6 @@ class GitHub(_Client):
                     author=author,
                     upvotes=upvotes,
                     labels=labels,
-                    platform="github",
                 )
 
             # Check for next page.
@@ -476,7 +475,7 @@ class GitHub(_Client):
         for user in members:
             if user not in eligible_users:
                 if dry_run:
-                    logger.info(f"Would revoke access from @{user} to {org}/{team} team.")
+                    _logger.info(f"Would revoke access from @{user} to {org}/{team} team.")
                 else:
                     self.revoke_access(user, org, team)
 
@@ -484,7 +483,7 @@ class GitHub(_Client):
         for user in invitable_users:
             if user not in members:
                 if dry_run:
-                    logger.info(f"Would grant access to @{user} to {org}/{team} team.")
+                    _logger.info(f"Would grant access to @{user} to {org}/{team} team.")
                 else:
                     self.grant_access(user, org, team)
 
@@ -502,7 +501,7 @@ class GitHub(_Client):
     ) -> None:
         """Create a repository."""
         # NOTE: No way to create discussion categories via API.
-        logger.debug(f"Creating repository {repository}.")
+        _logger.debug(f"Creating repository {repository}.")
 
         # Determine account type.
         try:

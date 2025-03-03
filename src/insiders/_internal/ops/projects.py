@@ -6,10 +6,10 @@ from typing import Annotated as An
 from typing import Any
 
 from copier import run_copy as copier_run
-from pypi_insiders.logger import run as run_and_log
 from typing_extensions import Doc
 
-from insiders._internal.logger import logger
+from insiders._internal.logger import _logger
+from insiders._internal.logger import _run as run_and_log
 
 # TODO: Handle more operations:
 # - Create matching Insiders project from public one.
@@ -45,9 +45,9 @@ def new_public_and_insiders_github_projects(
     insiders_name = insiders_name or public_name
     github_description = f"{description} Available to sponsors only."
 
-    logger.debug("Creating new project with these settings:")
-    logger.debug(f"- public repo:   {public_namespace}/{public_name} cloned in {public_repo_path}")
-    logger.debug(f"- insiders repo: {insiders_namespace}/{insiders_name} cloned in {insiders_repo_path}")
+    _logger.debug("Creating new project with these settings:")
+    _logger.debug(f"- public repo:   {public_namespace}/{public_name} cloned in {public_repo_path}")
+    _logger.debug(f"- insiders repo: {insiders_namespace}/{insiders_name} cloned in {insiders_repo_path}")
 
     common_opts = ("--disable-wiki", "--homepage", f"https://{public_namespace}.github.io/{public_name}")
     public_opts = ("--description", github_description, "--public", *common_opts)

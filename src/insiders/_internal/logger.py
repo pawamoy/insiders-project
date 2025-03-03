@@ -22,19 +22,19 @@ if TYPE_CHECKING:
     from loguru import Record
 
 
-def double_brackets(message: An[str, Doc("The message to transform.")]) -> An[str, Doc("The updated message.")]:
+def _double_brackets(message: An[str, Doc("The message to transform.")]) -> An[str, Doc("The updated message.")]:
     """Double `{` and `}` in log messages to prevent formatting errors."""
     return message.replace("{", "{{").replace("}", "}}")
 
 
-def run(
+def _run(
     *args: An[str | Path, Doc("Command line arguments.")],
     **kwargs: An[Any, Doc("Additional arguments to [subprocess.Popen][].")],
 ) -> An[str, Doc("The process standard output.")]:
     """Run a subprocess, log its standard output and error, return its output."""
-    args_str = double_brackets(str(args))
-    kwargs_str = double_brackets(str(kwargs))
-    logger.debug(f"Running subprocess with args={args_str}, kwargs={kwargs_str}")
+    args_str = _double_brackets(str(args))
+    kwargs_str = _double_brackets(str(kwargs))
+    _logger.debug(f"Running subprocess with args={args_str}, kwargs={kwargs_str}")
     process = subprocess.Popen(  # noqa: S603
         args,
         **kwargs,
@@ -47,10 +47,10 @@ def run(
         stdout_line = process.stdout.readline().strip()  # type: ignore[union-attr]
         stderr_line = process.stderr.readline().strip()  # type: ignore[union-attr]
         if stdout_line:
-            logger.debug(f"STDOUT: {double_brackets(stdout_line)}", pkg=args[0])
+            _logger.debug(f"STDOUT: {_double_brackets(stdout_line)}", pkg=args[0])
             stdout.append(stdout_line)
         if stderr_line:
-            logger.debug(f"STDERR: {double_brackets(stderr_line)}", pkg=args[0])
+            _logger.debug(f"STDERR: {_double_brackets(stderr_line)}", pkg=args[0])
         if not stdout_line and not stderr_line:
             break
     process.wait()
@@ -80,7 +80,7 @@ class _TextBuffer(StringIO):
 
 
 @contextmanager
-def redirect_output_to_logging(
+def _redirect_output_to_logging(
     stdout_level: An[str, Doc("Log level for standard output.")] = "info",
     stderr_level: An[str, Doc("Log level for standard error.")] = "error",
 ) -> Iterator[None]:
@@ -94,7 +94,7 @@ def redirect_output_to_logging(
         yield
 
 
-def log_captured(
+def _log_captured(
     text: An[str, Doc("The text to split and log.")],
     level: An[str, Doc("The log level to use.")] = "info",
     pkg: An[str | None, Doc("Extra `pkg` log metadata.")] = None,
@@ -102,10 +102,10 @@ def log_captured(
     """Log captured text."""
     log = getattr(logger, level)
     for line in text.splitlines(keepends=False):
-        log(double_brackets(line), pkg=pkg)
+        log(_double_brackets(line), pkg=pkg)
 
 
-def tail(log_file: An[str, Doc("The log file to tail.")]) -> None:
+def _tail(log_file: An[str, Doc("The log file to tail.")]) -> None:
     """Tail a log file."""
     with open(log_file) as file:
         try:
@@ -159,7 +159,7 @@ class _InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists.
         try:
-            level: str | int = logger.level(record.levelname).name
+            level: str | int = _logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
@@ -177,13 +177,13 @@ class _InterceptHandler(logging.Handler):
 
         # Log the message, replacing new lines with spaces.
         message = record.getMessage().replace("\n", " ")
-        logger.opt(depth=depth, exception=record.exc_info).log(level, message)
+        _logger.opt(depth=depth, exception=record.exc_info).log(level, message)
 
 
-intercept_handler = _InterceptHandler()
+_intercept_handler = _InterceptHandler()
 
 
-def configure_logging(
+def _configure_logging(
     level: An[str, Doc("Log level (name).")],
     path: An[str | Path | None, Doc("Log file path.")] = None,
     *,
@@ -211,16 +211,16 @@ def configure_logging(
         "ERROR": logging.ERROR,  # 40
         "CRITICAL": logging.CRITICAL,  # 50
     }.get(level.upper(), logging.INFO)
-    intercept_handler.include = include
-    intercept_handler.exclude = exclude
-    intercept_handler.downgrade = downgrade
-    logging.basicConfig(handlers=[intercept_handler], level=0, force=True)
+    _intercept_handler.include = include
+    _intercept_handler.exclude = exclude
+    _intercept_handler.downgrade = downgrade
+    logging.basicConfig(handlers=[_intercept_handler], level=0, force=True)
     loguru_format = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
         "<level>{level: <8}</level> | <cyan>{pkg}</cyan> - <level>{message}</level>"
     )
     handler = {"sink": sink, "level": log_level, "format": loguru_format}
-    logger.configure(handlers=[handler])  # type: ignore[list-item]
+    _logger.configure(handlers=[handler])  # type: ignore[list-item]
 
 
-logger = logger.patch(_update_record)
+_logger = logger.patch(_update_record)

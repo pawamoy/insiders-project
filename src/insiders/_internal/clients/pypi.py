@@ -11,10 +11,11 @@ from typing import Annotated as An
 from build import ProjectBuilder
 from build.env import DefaultIsolatedEnv
 from failprint import Capture
-from pypi_insiders.logger import log_captured, logger, redirect_output_to_logging
 from twine.commands.upload import upload
 from twine.settings import Settings
 from typing_extensions import Doc
+
+from insiders._internal.logger import _log_captured, _logger, _redirect_output_to_logging
 
 # TODO: Rewrite as a proper Client subclass.
 
@@ -38,7 +39,7 @@ def reserve_pypi(
         repo.mkdir()
         dist = repo / "dist"
 
-        logger.info(f"Preparing package {name}, {description}")
+        _logger.info(f"Preparing package {name}, {description}")
         repo.joinpath("pyproject.toml").write_text(
             dedent(
                 f"""
@@ -67,7 +68,7 @@ def reserve_pypi(
             ).lstrip(),
         )
 
-        logger.info("Building distributions")
+        _logger.info("Building distributions")
         for distribution in ("sdist", "wheel"):
             with DefaultIsolatedEnv() as env:
                 builder = ProjectBuilder.from_isolated_env(env, repo)
@@ -75,10 +76,10 @@ def reserve_pypi(
                 with Capture.BOTH.here() as captured:
                     env.install(builder.get_requires_for_build(distribution))
                     builder.build(distribution, str(dist))
-                log_captured(str(captured), level="debug", pkg="build")
+                _log_captured(str(captured), level="debug", pkg="build")
 
-        logger.info("Uploading distributions")
-        with redirect_output_to_logging(stdout_level="debug"):
+        _logger.info("Uploading distributions")
+        with _redirect_output_to_logging(stdout_level="debug"):
             upload(
                 Settings(
                     non_interactive=True,

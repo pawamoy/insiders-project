@@ -5,9 +5,12 @@ import sys
 from dataclasses import dataclass, fields
 from dataclasses import field as dataclass_field
 from typing import TYPE_CHECKING, Any, overload
+from typing import Annotated as An
+
+from typing_extensions import Doc
 
 from insiders._internal.defaults import DEFAULT_CONF_PATH
-from insiders._internal.logger import logger
+from insiders._internal.logger import _logger
 from insiders._internal.models import Backlog  # noqa: F401
 
 if TYPE_CHECKING:
@@ -25,9 +28,9 @@ class Unset:
     """A sentinel value for unset configuration options."""
 
     def __init__(self, key: str, transform: str | None = None) -> None:
-        self.key = key
-        self.name = key.replace("-", "_").replace(".", "_")
-        self.transform = transform
+        self.key: An[str, Doc("TOML key.")] = key
+        self.name: An[str, Doc("Config variable name.")] = key.replace("-", "_").replace(".", "_")
+        self.transform: An[str | None, Doc("Name of the method to call to transform the config value.")] = transform
 
     def __bool__(self) -> bool:
         return False
@@ -229,7 +232,7 @@ class Config:
                 if final_key not in field_keys:
                     unknown_keys.append(final_key)
         if unknown_keys:
-            logger.warning(f"Unknown configuration keys: {', '.join(unknown_keys)}")
+            _logger.warning(f"Unknown configuration keys: {', '.join(unknown_keys)}")
 
         # Create a configuration instance.
         return cls(

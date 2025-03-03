@@ -7,7 +7,7 @@ import httpx
 from typing_extensions import Doc
 
 from insiders._internal.clients import _Client
-from insiders._internal.logger import logger
+from insiders._internal.logger import _logger
 from insiders._internal.models import Account, Sponsors, Sponsorship
 
 
@@ -31,13 +31,13 @@ class Polar(_Client):
 
     def get_sponsors(self, *, exclude_private: bool = False) -> An[Sponsors, Doc("Sponsors data.")]:  # noqa: ARG002
         """Get Polar sponsorships."""
-        logger.debug("Fetching sponsors from Polar.")
+        _logger.debug("Fetching sponsors from Polar.")
         sponsorships = []
         page = 1
         items = []
 
         while True:
-            logger.debug(f"Fetching page {page} of subscriptions from Polar.")
+            _logger.debug(f"Fetching page {page} of subscriptions from Polar.")
             response = self.http_client.get(
                 "/v1/subscriptions/",
                 params={
@@ -54,7 +54,7 @@ class Polar(_Client):
                 break
             page += 1
 
-        logger.debug(f"Processing {len(items)} subscriptions from Polar.")
+        _logger.debug(f"Processing {len(items)} subscriptions from Polar.")
         # Process sponsors data.
         for item in items:
             if not item["price"].get("price_amount"):
@@ -70,7 +70,7 @@ class Polar(_Client):
                 url=f"https://polar.sh/{customer_name}",
                 platform="polar",
             )
-            logger.debug(f"Found user: @{account.name}")
+            _logger.debug(f"Found user: @{account.name}")
 
             # Record sponsorship.
             sponsorships.append(

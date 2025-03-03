@@ -32,7 +32,7 @@ from insiders._internal.clients.github import GitHub
 from insiders._internal.clients.index import Index
 from insiders._internal.clients.polar import Polar
 from insiders._internal.config import Config, Unset
-from insiders._internal.logger import configure_logging
+from insiders._internal.logger import _configure_logging
 from insiders._internal.models import Sponsors
 from insiders._internal.ops.backlog import get_backlog, print_backlog
 from insiders._internal.ops.projects import new_public_and_insiders_github_projects
@@ -1466,7 +1466,7 @@ class CommandMain:
 
     @staticmethod
     def _configure_logging(command: CommandMain) -> None:
-        configure_logging(
+        _configure_logging(
             command.log_level,
             command.log_path,
             include=command.log_include,

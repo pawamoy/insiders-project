@@ -22,7 +22,7 @@ from typing_extensions import Doc
 from unearth import PackageFinder
 
 from insiders._internal import defaults
-from insiders._internal.logger import log_captured, logger, redirect_output_to_logging, run
+from insiders._internal.logger import _log_captured, _logger, _redirect_output_to_logging, _run
 
 # YORE: EOL 3.10: Replace block with line 2.
 if sys.version_info >= (3, 11):
@@ -41,7 +41,7 @@ def _normalize_version(version: str) -> str:
     return version.replace("+", ".").replace("-", ".")
 
 
-class GitCache:
+class _GitCache:
     """A cache for local clones of configured repositories."""
 
     def __init__(self, cache_dir: str | Path = defaults.DEFAULT_REPO_DIR) -> None:
@@ -55,7 +55,7 @@ class GitCache:
 
     def _git(self, repo: str, *args: str, **kwargs: Any) -> str:
         cached_repo = self.cache_dir / repo
-        return run("git", "-C", cached_repo, *args, **kwargs)
+        return _run("git", "-C", cached_repo, *args, **kwargs)
 
     def list(self) -> Iterator[str]:
         """List the repositories in the cache.
@@ -85,10 +85,10 @@ class GitCache:
         Returns:
             The path to the cloned repository.
         """
-        logger.debug(f"{repo}: Cloning {url}")
+        _logger.debug(f"{repo}: Cloning {url}")
         cached_repo = self.cache_dir / repo
         cached_repo.parent.mkdir(exist_ok=True)
-        run("git", "clone", url, cached_repo)
+        _run("git", "clone", url, cached_repo)
         return cached_repo
 
     def checkout(self, repo: str, ref: str) -> None:
@@ -97,7 +97,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
-        logger.debug(f"{repo}: Checking out {ref}")
+        _logger.debug(f"{repo}: Checking out {ref}")
         self._git(repo, "checkout", ref)
 
     def checkout_origin_head(self, repo: str) -> None:
@@ -106,7 +106,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
-        logger.debug(f"{repo}: Checking out origin's HEAD")
+        _logger.debug(f"{repo}: Checking out origin's HEAD")
         self._git(repo, "remote", "set-head", "origin", "--auto")
         ref = self._git(repo, "symbolic-ref", "refs/remotes/origin/HEAD")
         self.checkout(repo, ref.strip().split("/")[3])
@@ -117,7 +117,7 @@ class GitCache:
         Parameters:
             repo: The repository to work on.
         """
-        logger.debug(f"{repo}: Pulling latest changes")
+        _logger.debug(f"{repo}: Pulling latest changes")
         self._git(repo, "pull")
 
     def dist_name(self, repo: str) -> str:
@@ -171,7 +171,7 @@ class GitCache:
         cached_repo = self.cache_dir / repo
         with Capture.BOTH.here() as captured:
             build_package(cached_repo, cached_repo / "dist", distributions=["sdist", "wheel"])
-        log_captured(str(captured), level="debug", pkg="build")
+        _log_captured(str(captured), level="debug", pkg="build")
         return cached_repo.joinpath("dist").iterdir()
 
 
@@ -197,7 +197,7 @@ class Index:
         self.port: An[int, Doc("The port of the index server.")] = parsed.port or 80
 
         self.dist_dir.mkdir(parents=True, exist_ok=True)
-        self._git_cache = GitCache(self.git_dir)
+        self._git_cache = _GitCache(self.git_dir)
         self._finder = PackageFinder(index_urls=[f"{self.url}/simple"])
 
     def add(self, git_url: str, repo: str | None = None) -> None:
@@ -214,7 +214,7 @@ class Index:
         try:
             dist_name = self._git_cache.dist_name(repo).replace("-", "_")
         except FileNotFoundError:
-            logger.warning(f"{repo}: Repository not found, skipping")
+            _logger.warning(f"{repo}: Repository not found, skipping")
             return
         self._git_cache.remove(repo)
         for dist in self.dist_dir.glob(f"{dist_name}-*"):
@@ -239,39 +239,39 @@ class Index:
         projects = projects or sorted(cache.list())
         for name in projects:
             if not cache.exists(name):
-                logger.warning(f"{name}: Repository not found, skipping")
+                _logger.warning(f"{name}: Repository not found, skipping")
                 continue
             dist_name = cache.dist_name(name)
-            logger.info(f"{name}: Updating sources")
+            _logger.info(f"{name}: Updating sources")
             cache.checkout_origin_head(name)
             cache.pull(name)
 
             latest_tag = cache.latest_tag(name)
             if latest_tag:
-                logger.debug(f"{name}: Latest tag is {latest_tag}")
+                _logger.debug(f"{name}: Latest tag is {latest_tag}")
             else:
-                logger.debug(f"{name}: No tags found")
+                _logger.debug(f"{name}: No tags found")
                 continue
             latest_version = self.latest(dist_name)
             if latest_version:
-                logger.debug(f"{name}: Latest PyPI version is {latest_version}")
+                _logger.debug(f"{name}: Latest PyPI version is {latest_version}")
 
             normal_tag = _normalize_version(latest_tag)
             normal_version = _normalize_version(latest_version or "0.0.0")
             if latest_version is None or normal_tag != normal_version:
                 try:
                     if Version(normal_tag) < Version(normal_version):
-                        logger.warning(f"Latest tag {latest_tag} is older than latest PyPI version {latest_version}")
+                        _logger.warning(f"Latest tag {latest_tag} is older than latest PyPI version {latest_version}")
                         if self.exists(dist_name, normal_tag):
                             continue
                 except InvalidVersion:
                     pass
-                logger.info(f"{name}: Building and uploading {normal_tag} (current: {normal_version})")
+                _logger.info(f"{name}: Building and uploading {normal_tag} (current: {normal_version})")
                 cache.remove_dist(name)
                 cache.checkout(name, latest_tag)
                 new_dists = cache.build(name)
                 self.upload(new_dists)
-                logger.success(f"{name}: Built and published version {normal_tag}")
+                _logger.success(f"{name}: Built and published version {normal_tag}")
 
     def start(self, *, background: bool = False, log_path: str | None = None) -> None:
         """Start the server."""
@@ -346,7 +346,7 @@ class Index:
 
     def upload(self, dists: An[Iterable[str | Path], Doc("The distributions to upload.")]) -> None:
         """Upload distributions."""
-        with redirect_output_to_logging(stdout_level="debug"):
+        with _redirect_output_to_logging(stdout_level="debug"):
             upload(
                 Settings(
                     non_interactive=True,
