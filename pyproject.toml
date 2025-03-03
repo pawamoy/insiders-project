@@ -33,8 +33,18 @@ dependencies = [
     "cappa>=0.8",
     "copier>=8.3",
     "copier-templates-extensions>=0.3",
+    "failprint>=1.0",
+    "httpx>=0.28",
     "loguru>=0.7",
+    "packaging>=24.2",
+    "platformdirs>=4.3",
+    "psutil>=7.0",
+    "pypiserver>=2.3",
+    "rich>=13.9",
+    "tomli>=2.2",
     "twine>=4.0",
+    "typing-extensions>=4.0; python_version < '3.11'",
+    "unearth>=0.17",
 ]
 
 [project.urls]
