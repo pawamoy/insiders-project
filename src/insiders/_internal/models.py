@@ -84,7 +84,6 @@ class Beneficiary:
     """A sponsorship beneficiary: a user, grant bit, and optional org."""
 
     user: An[Account, Doc("The user who benefits from the sponsorship.")]
-    org: An[Account | None, Doc("The organization the user benefits from.")] = None
     grant: An[
         bool | None,
         Doc("Whether the user is granted access to Insiders (in addition to getting voting power)."),
