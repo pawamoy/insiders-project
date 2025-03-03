@@ -4,13 +4,10 @@ import getpass
 import re
 
 import cappa
-import mkdocs_gen_files
 from cappa.base import collect
 from cappa.help import generate_arg_groups
 
-from insiders._internal.cli import CommandMain
-
-nav = mkdocs_gen_files.Nav()
+from insiders._internal.cli import CommandMain, CommandBacklog, CommandIndex, CommandProject, CommandSponsors
 
 
 def _repl_config(match: re.Match) -> str:
@@ -19,8 +16,7 @@ def _repl_config(match: re.Match) -> str:
     return f"[`{config_key}`][insiders._internal.config.Config.{config_attr}]"
 
 
-def render_parser(command: cappa.Command, title: str, page: str, heading_level: int = 1, layer: int = 1) -> str:
-    """Render the parser help documents as a string."""
+def _render_parser(command: cappa.Command, title: str, heading_level: int = 1, *, recursive: bool = True) -> str:
     result = [f"{'#' * heading_level} **`{title}`**\n"]
     if command.help:
         result.append(f"> {command.help}\n")
@@ -28,8 +24,6 @@ def render_parser(command: cappa.Command, title: str, page: str, heading_level: 
         result.append(f"{command.description}\n")
 
     for (name, _), args in sorted(generate_arg_groups(command)):
-        if name.lower() == "global options" and layer > 1:
-            continue
         if name.lower() != "subcommands":
             result.append(f"{name.title()} | Description | Default")
             result.append("--- | --- | ---")
@@ -37,9 +31,8 @@ def render_parser(command: cappa.Command, title: str, page: str, heading_level: 
             if isinstance(arg, cappa.Subcommand):
                 for option in arg.options.values():
                     title = option.real_name()
-                    markdown = render_parser(option, title, f"command-{title}.md", heading_level + 1, layer + 1)
-                    if layer >= 2:  # noqa: PLR2004
-                        result.append(markdown)
+                    if recursive:
+                        result.append(_render_parser(option, title, heading_level + 1, recursive=True))
                 continue
 
             line = ""
@@ -59,21 +52,16 @@ def render_parser(command: cappa.Command, title: str, page: str, heading_level: 
             result.append(line)
         result.append("")
 
-    markdown = "\n".join(result)
-
-    if layer < 3:  # noqa: PLR2004
-        nav[page[:-3]] = page
-        markdown = re.sub(rf"\b{re.escape(getpass.getuser())}\b", "user", markdown)
-        with mkdocs_gen_files.open(f"cli/{page}", "w") as fd:
-            fd.write(markdown)
-
-        mkdocs_gen_files.set_edit_path(f"cli/{page}", "scripts/gen_cli_reference.py")
-
-    return markdown
+    return re.sub(rf"\b{re.escape(getpass.getuser())}\b", "user", "\n".join(result))
 
 
-command = collect(CommandMain, help=False, completion=False)
-render_parser(command, "insiders", "index.md")
-
-with mkdocs_gen_files.open("cli/SUMMARY.md", "w") as nav_file:
-    nav_file.writelines(nav.build_literate_nav())
+def render_cli(command: str, *, recursive: bool = True) -> str:
+    dataclass = {
+        "insiders": CommandMain,
+        "backlog": CommandBacklog,
+        "index": CommandIndex,
+        "project": CommandProject,
+        "sponsors": CommandSponsors,
+    }[command]
+    cappa_command: cappa.Command = collect(dataclass, help=False, completion=False)
+    return _render_parser(cappa_command, command, recursive=recursive)

@@ -19,15 +19,17 @@ nav:
   - Changelog: changelog.md
   - Credits: credits.md
   - License: license.md
-# defer to gen-files + literate-nav
-- CLI reference: cli/
-# defer to gen-files + literate-nav
-- API reference:
-  - insiders: reference/
+- CLI reference:
+  - reference/cli/index.md
+  - Backlog command: reference/cli/command-backlog.md
+  - Index command: reference/cli/command-index.md
+  - Project command: reference/cli/command-project.md
+  - Sponsors command: reference/cli/command-sponsors.md
+- API reference: reference/api/insiders.md
 - Development:
   - Contributing: contributing.md
   - Code of Conduct: code_of_conduct.md
-  # - Coverage report: coverage.md
+  - Coverage report: coverage.md
 - Insiders:
   - insiders/index.md
   - Getting started:
@@ -48,7 +50,8 @@ theme:
   - content.code.copy
   - content.tooltips
   - navigation.footer
-  - navigation.indexes
+  - navigation.instant.preview
+  - navigation.path
   - navigation.sections
   - navigation.tabs
   - navigation.tabs.sticky
@@ -110,17 +113,12 @@ markdown_extensions:
 plugins:
 - search
 - markdown-exec
-- gen-files:
-    scripts:
-    - scripts/gen_api_ref.py
-    - scripts/gen_cli_ref.py
-- literate-nav:
-    nav_file: SUMMARY.md
-# - coverage
+- section-index
+- coverage
 - mkdocstrings:
     handlers:
       python:
-        import:
+        inventories:
         - https://docs.python.org/3/objects.inv
         paths: [src]
         options:
@@ -143,6 +141,12 @@ plugins:
           signature_crossrefs: true
           summary: true
           unwrap_annotated: true
+- llmstxt:
+    files:
+    - output: llms-full.txt
+      inputs:
+      - index.md
+      - reference/**.md
 - git-revision-date-localized:
     enabled: !ENV [DEPLOY, false]
     enable_creation_date: true

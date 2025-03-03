@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(f"mkdocs.logs.{__name__}")
 
 
-def human_readable_amount(amount: int) -> str:  # noqa: D103
+def human_readable_amount(amount: int) -> str:
     str_amount = str(amount)
     if len(str_amount) >= 4:  # noqa: PLR2004
         return f"{str_amount[: len(str_amount) - 3]},{str_amount[-3:]}"
@@ -185,7 +185,7 @@ def feature_list(goals: Iterable[Goal]) -> list[Feature]:
     return list(chain.from_iterable(goal.features for goal in goals))
 
 
-def load_json(url: str) -> str | list | dict:  # noqa: D103
+def load_json(url: str) -> str | list | dict:
     with urlopen(url) as response:  # noqa: S310
         return json.loads(response.read().decode())
 

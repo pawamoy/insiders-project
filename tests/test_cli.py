@@ -1,4 +1,4 @@
-"""Tests for the `cli` module."""
+"""Tests for the CLI."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def test_show_version(capsys: pytest.CaptureFixture) -> None:
     """
     assert cli.main(["-V"]) == 0
     captured = capsys.readouterr()
-    assert debug.get_version() in captured.out
+    assert debug._get_version() in captured.out
 
 
 def test_show_debug_info(capsys: pytest.CaptureFixture) -> None:

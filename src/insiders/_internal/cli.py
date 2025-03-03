@@ -1,5 +1,3 @@
-"""Module that contains the command line application."""
-
 # Why does this file exist, and why not put this in `__main__`?
 #
 # You might be tempted to import things from `__main__` later,
@@ -1466,7 +1464,7 @@ class CommandMain:
         cappa.Arg(
             short="-V",
             long=True,
-            action=_print_and_exit(debug.get_version),
+            action=_print_and_exit(debug._get_version),
             num_args=0,
             group=_GROUP_OPTIONS,
         ),
@@ -1475,7 +1473,7 @@ class CommandMain:
 
     debug_info: An[
         bool,
-        cappa.Arg(long=True, action=_print_and_exit(debug.print_debug_info), num_args=0, group=_GROUP_OPTIONS),
+        cappa.Arg(long=True, action=_print_and_exit(debug._print_debug_info), num_args=0, group=_GROUP_OPTIONS),
         Doc("Print debug information."),
     ] = False
 
