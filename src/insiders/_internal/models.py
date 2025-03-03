@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal
 from typing import Annotated as An
 
-from typing_extensions import Doc
+from typing_extensions import Doc, Self
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -119,8 +119,9 @@ class Sponsors:
     def __add__(self, other: Sponsors) -> Sponsors:
         return Sponsors(sponsorships=self.sponsorships + other.sponsorships)
 
-    def __iadd__(self, other: Sponsors) -> Sponsors:
+    def __iadd__(self, other: Sponsors) -> Self:
         self.sponsorships.extend(other.sponsorships)
+        return self
 
     def merge(self, other: Sponsors) -> Sponsors:
         self.sponsorships.extend(other.sponsorships)
