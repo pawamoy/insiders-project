@@ -61,12 +61,12 @@ def get_backlog(
     sponsors: Sponsors | None = None,
     issue_labels: set[str] | None = None,
 ) -> Backlog:
-    github_accounts = {account for account in sponsors.accounts if account.platform == "github"} if sponsors else None
-    github_issues = github.get_issues(github_namespaces, github_accounts, allow_labels=issue_labels)
+    github_users = {beneficiary.user for beneficiary in sponsors.beneficiaries.values()} if sponsors else None
+    github_issues = github.get_issues(github_namespaces, github_users, allow_labels=issue_labels)
     logger.debug(f"Got {len(github_issues)} issues from GitHub")
 
     if polar:
-        polar_issues = polar.get_issues(github_namespaces, github_accounts)
+        polar_issues = polar.get_issues(github_namespaces, github_users)
         logger.debug(f"Got {len(polar_issues)} issues from Polar")
         for key, github_issue in github_issues.items():
             if key in polar_issues and (polar_issues[key].upvotes or polar_issues[key].pledged):
