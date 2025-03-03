@@ -69,9 +69,9 @@ class Polar(Client):
             # Determine account.
             # This requires going on Polar and setting correct metadata.
             customer_name = item["customer"]["name"]
-            github_username = item["customer"]["metadata"].get("github_username")
+            github_account = item["customer"]["metadata"].get("github-account")
             account = Account(
-                name=customer_name or github_username,
+                name=customer_name or github_account,
                 image=item["customer"]["avatar_url"],
                 url=f"https://polar.sh/{customer_name}",
                 platform="polar",
