@@ -34,7 +34,6 @@ dependencies = [
     "copier>=8.3",
     "copier-templates-extensions>=0.3",
     "loguru>=0.7",
-    "pypi-insiders>=0.0",
     "twine>=4.0",
 ]
 
