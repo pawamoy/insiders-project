@@ -54,7 +54,6 @@ sort = [
     "label('docs')",
     "label('refactor')",
     "min_sponsorships(50)",
-    "min_pledge(30)",
     "min_upvotes(2)",
     "label('insiders')",
     "repository('mkdocstrings/*')",

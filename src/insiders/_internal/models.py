@@ -153,7 +153,6 @@ class Issue:
     author: An[Account, Doc("The issue author.")]
     upvotes: An[set[Account], Doc("The issue upvotes / upvoters.")] = field(default_factory=set)
     labels: An[set[str], Doc("The issue labels.")] = field(default_factory=set)
-    pledged: An[int, Doc("The amount pledged.")] = 0
     platform: An[IssuePlatform, Doc("The issue platform.")]
 
     @property
@@ -210,16 +209,6 @@ class Backlog:
         def sponsorships(*, reverse: bool = True) -> Callable[[Issue], int]:
             factor = -1 if reverse else 1
             return lambda issue: factor * issue.funding
-
-        @staticmethod
-        def min_pledge(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:
-            factor = -1 if reverse else 1
-            return lambda issue: factor * (issue.pledged if issue.pledged >= amount else 0)
-
-        @staticmethod
-        def pledge(*, reverse: bool = True) -> Callable[[Issue], int]:
-            factor = -1 if reverse else 1
-            return lambda issue: factor * issue.pledged
 
         @staticmethod
         def min_upvotes(amount: int, *, reverse: bool = True) -> Callable[[Issue], int]:

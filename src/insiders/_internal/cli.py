@@ -198,7 +198,6 @@ class CommandBacklog:
             backlog = get_backlog(
                 self.backlog_namespaces,
                 github=github,
-                polar=polar,
                 sponsors=sponsors,
                 issue_labels=set(self.issue_labels),
             )

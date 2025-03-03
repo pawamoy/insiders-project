@@ -12,7 +12,6 @@ from insiders._internal.models import Backlog
 
 if TYPE_CHECKING:
     from insiders._internal.clients.github import GitHub
-    from insiders._internal.clients.polar import Polar
     from insiders._internal.models import Sponsors
 
 
@@ -28,7 +27,6 @@ def print_backlog(
     table.add_column("Author", no_wrap=True)
     table.add_column("Labels", no_wrap=False)
     table.add_column("Funding", no_wrap=True)
-    table.add_column("Boost", no_wrap=True)
     table.add_column("Upvotes", no_wrap=True)
     table.add_column("Title")
 
@@ -43,7 +41,6 @@ def print_backlog(
             f"[link=https://github.com/{issue.author.name}]{issue.author.name}[/link]",
             "".join(labels.get(label, label) for label in sorted(issue.labels)),
             f"💖{issue.funding}",
-            f"💲{issue.pledged}",
             f"👍{len(issue.upvotes)}",
             f"[link={url}]{issue.title}[/link]",
         )
@@ -57,19 +54,10 @@ def print_backlog(
 def get_backlog(
     github_namespaces: list[str],
     github: GitHub,
-    polar: Polar | None = None,
     sponsors: Sponsors | None = None,
     issue_labels: set[str] | None = None,
 ) -> Backlog:
     github_users = {beneficiary.user for beneficiary in sponsors.beneficiaries.values()} if sponsors else None
     github_issues = github.get_issues(github_namespaces, github_users, allow_labels=issue_labels)
     logger.debug(f"Got {len(github_issues)} issues from GitHub")
-
-    if polar:
-        polar_issues = polar.get_issues(github_namespaces, github_users)
-        logger.debug(f"Got {len(polar_issues)} issues from Polar")
-        for key, github_issue in github_issues.items():
-            if key in polar_issues and (polar_issues[key].upvotes or polar_issues[key].pledged):
-                github_issue.pledged = polar_issues[key].pledged
-
     return Backlog(issues=list(github_issues.values()))
