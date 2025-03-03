@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [4.0.1](https://github.com/pawamoy/insiders-project/releases/tag/4.0.1) - 2025-03-03
+
+<small>[Compare with 4.0.0](https://github.com/pawamoy/insiders-project/compare/4.0.0...4.0.1)</small>
+
+### Build
+
+- Add (missing) dependencies from pypi-insiders ([d11cfa9](https://github.com/pawamoy/insiders-project/commit/d11cfa9b69c2f2171bf8a05982e94a50a5577c43) by Timothée Mazzucotelli).
+
 ## [4.0.0](https://github.com/pawamoy/insiders-project/releases/tag/4.0.0) - 2025-03-03
 
 <small>[Compare with 3.0.0](https://github.com/pawamoy/insiders-project/compare/3.0.0...4.0.0)</small>
