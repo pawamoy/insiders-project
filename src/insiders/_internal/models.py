@@ -99,7 +99,7 @@ class Sponsorship:
     account: An[Account, Doc("The account who created the sponsorship")]
     beneficiaries: An[dict[str, Beneficiary], Doc("Beneficiaries of this sponsorship.")] = field(default_factory=dict)
 
-    def __eq__(self, other: An[object, Doc("The other object to compare to.")]) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Sponsorship):
             return NotImplemented
         return self.account == other.account
