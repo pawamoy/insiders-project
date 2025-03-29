@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [4.0.2](https://github.com/pawamoy/insiders-project/releases/tag/4.0.2) - 2025-03-29
+
+<small>[Compare with 4.0.1](https://github.com/pawamoy/insiders-project/compare/4.0.1...4.0.2)</small>
+
+### Dependencies
+
+- Depend on Cappa 0.26.3 ([ea5d5a6](https://github.com/pawamoy/insiders-project/commit/ea5d5a6b860bf17d14d36db9b48a5bb1dd772fd5) by Timothée Mazzucotelli).
+- Upgrade dependencies' lower bounds ([48185e1](https://github.com/pawamoy/insiders-project/commit/48185e148913cba61c7e9e5c2ec1627e7b319825) by Timothée Mazzucotelli).
+
+### Code Refactoring
+
+- Use GitHub advanced query syntax ([cd31a02](https://github.com/pawamoy/insiders-project/commit/cd31a022f03f95722570d6f48b15a18eb2d8bfdb) by Timothée Mazzucotelli).
+
 ## [4.0.1](https://github.com/pawamoy/insiders-project/releases/tag/4.0.1) - 2025-03-03
 
 <small>[Compare with 4.0.0](https://github.com/pawamoy/insiders-project/compare/4.0.0...4.0.1)</small>
