@@ -59,7 +59,7 @@ query {
         first: 100
         after: %(after)s
         query: "%(query)s"
-        type: ISSUE
+        type: ISSUE_ADVANCED
     )
     {
         pageInfo {
@@ -389,8 +389,8 @@ class GitHub(_Client):
         issues = {}
         allow_labels = allow_labels or set()
         cursor = "null"
-        users_query = " ".join(f"user:{user}" for user in github_accounts)
-        query = f"{users_query} sort:created state:open"
+        users_query = " OR ".join(f"user:{user}" for user in github_accounts)
+        query = f"({users_query}) AND sort:created AND state:open"
 
         while True:
             # Get issues data.
