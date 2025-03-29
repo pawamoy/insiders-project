@@ -112,6 +112,7 @@ markdown_extensions:
 
 plugins:
 - search
+- autorefs
 - markdown-exec
 - section-index
 - coverage
@@ -122,6 +123,7 @@ plugins:
         - https://docs.python.org/3/objects.inv
         paths: [src]
         options:
+          backlinks: tree
           docstring_options:
             ignore_init_summary: true
           docstring_style: null

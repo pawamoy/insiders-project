@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import griffe
 import pytest
-from mkdocstrings.inventory import Inventory
+from mkdocstrings import Inventory
 
 import insiders
 
@@ -164,7 +164,11 @@ def test_inventory_matches_api(
     public_api_paths = {obj.path for obj in public_objects}
     public_api_paths.add("insiders")
     for item in inventory.values():
-        if item.domain == "py" and "(" not in item.name:
+        if (
+            item.domain == "py"
+            and "(" not in item.name
+            and (item.name == "insiders" or item.name.startswith("insiders."))
+        ):
             obj = loader.modules_collection[item.name]
             if obj.path not in public_api_paths and not any(path in public_api_paths for path in obj.aliases):
                 not_in_api.append(item.name)
