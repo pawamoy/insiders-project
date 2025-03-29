@@ -23,14 +23,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "Topic :: Documentation",
-    "Topic :: Software Development",
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
 dependencies = [
     "build>=1.2",
-    "cappa>=0.26",
+    "cappa>=0.26.3",
     "copier>=9.5",
     "copier-templates-extensions>=0.3",
     "failprint>=1.0",
@@ -43,6 +41,7 @@ dependencies = [
     "rich>=13.9",
     "tomli>=2.2",
     "twine>=6.1",
+    # YORE: EOL 3.10: Remove line.
     "typing-extensions>=4.0; python_version < '3.11'",
     "unearth>=0.17",
 ]
