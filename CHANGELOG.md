@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 <!-- insertion marker -->
+## [4.1.0](https://github.com/pawamoy/insiders-project/releases/tag/4.1.0) - 2025-06-30
+
+<small>[Compare with 4.0.2](https://github.com/pawamoy/insiders-project/compare/4.0.2...4.1.0)</small>
+
+### Features
+
+- Also return PRs in backlog ([89da904](https://github.com/pawamoy/insiders-project/commit/89da904bfb139d2baf6242f256eb77c8b27ec7f9) by Timothée Mazzucotelli).
+
 ## [4.0.2](https://github.com/pawamoy/insiders-project/releases/tag/4.0.2) - 2025-03-29
 
 <small>[Compare with 4.0.1](https://github.com/pawamoy/insiders-project/compare/4.0.1...4.0.2)</small>
