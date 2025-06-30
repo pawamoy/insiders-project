@@ -1,11 +1,5 @@
 # insiders
 
-> Manage your Insiders projects.
-
-# Usage
-
-# insiders
-
 Manage your Insiders projects.
 
 ## Installation
@@ -196,5 +190,3 @@ some-github-account = [
 ```
 
 More documentation will be added later, for now ask @pawamoy for details (see where I can be reached on my profile) 🙂
-# API
-
