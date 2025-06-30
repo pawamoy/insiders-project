@@ -230,6 +230,7 @@ class GitHub(_Client):
         sponsorship: Sponsorship,
         org: Account,
         accounts: dict[str, Account],
+        *,
         grant: bool | None = None,
     ) -> None:
         members = self.get_org_members(org.name)
@@ -429,7 +430,7 @@ class GitHub(_Client):
             for item in data["search"]["nodes"]:
                 if item["__typename"] not in ("Issue", "PullRequest"):
                     continue
-                    
+
                 author_id = item["author"]["login"].removesuffix("[bot]")
                 repository = item["repository"]["nameWithOwner"]
                 title = item["title"]
