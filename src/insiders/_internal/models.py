@@ -146,15 +146,16 @@ class Sponsors:
 
 @dataclass(kw_only=True, eq=False)
 class Issue:
-    """An issue."""
+    """An issue or pull request."""
 
-    repository: An[str, Doc("The issue repository.")]
-    number: An[int, Doc("The issue number.")]
-    title: An[str, Doc("The issue title.")]
-    created: An[datetime, Doc("The issue creation date.")]
-    author: An[Account, Doc("The issue author.")]
-    upvotes: An[set[Account], Doc("The issue upvotes / upvoters.")] = field(default_factory=set)
-    labels: An[set[str], Doc("The issue labels.")] = field(default_factory=set)
+    repository: An[str, Doc("The issue/PR repository.")]
+    number: An[int, Doc("The issue/PR number.")]
+    title: An[str, Doc("The issue/PR title.")]
+    created: An[datetime, Doc("The issue/PR creation date.")]
+    author: An[Account, Doc("The issue/PR author.")]
+    upvotes: An[set[Account], Doc("The issue/PR upvotes / upvoters.")] = field(default_factory=set)
+    labels: An[set[str], Doc("The issue/PR labels.")] = field(default_factory=set)
+    is_pr: An[bool, Doc("Whether this is a pull request.")] = False
 
     @property
     def interested_users(self) -> set[Account]:
@@ -262,6 +263,12 @@ class Backlog:
             """Sort by repository."""
             factor = -1 if reverse else 1
             return lambda issue: factor * (1 if fnmatch(issue.repository, name) else 0)
+
+        @staticmethod
+        def is_pull_request(*, reverse: An[bool, Doc("Sort in reverse.")] = True) -> Callable[[Issue], int]:
+            """Sort by pull request status."""
+            factor = -1 if reverse else 1
+            return lambda issue: factor * (1 if issue.is_pr else 0)
 
     class _Sort:
         def __init__(self, *funcs: Callable[[Issue], Any]):

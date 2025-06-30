@@ -23,6 +23,7 @@ def print_backlog(
     """Print the backlog."""
     table = Table(title=f"Backlog ({f'showing {limit} of ' if limit else ''}{len(backlog.issues)} issues)")
     table.add_column("Nº", no_wrap=True)
+    table.add_column("Type", no_wrap=True)
     table.add_column("Issue", no_wrap=True)
     table.add_column("Author", no_wrap=True)
     table.add_column("Labels", no_wrap=False)
@@ -34,9 +35,12 @@ def print_backlog(
 
     for index, issue in enumerate(backlog.issues, 1):
         iid = f"{issue.repository}#{issue.number}"
-        url = f"https://github.com/{issue.repository}/issues/{issue.number}"
+        issue_type = "PR" if issue.is_pr else "Issue"
+        url_path = "pull" if issue.is_pr else "issues"
+        url = f"https://github.com/{issue.repository}/{url_path}/{issue.number}"
         table.add_row(
             str(index),
+            issue_type,
             f"[link={url}]{iid}[/link]",
             f"[link=https://github.com/{issue.author.name}]{issue.author.name}[/link]",
             "".join(labels.get(label, label) for label in sorted(issue.labels)),

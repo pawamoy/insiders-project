@@ -92,9 +92,34 @@ query {
                     }
                 }
             }
+            ... on PullRequest {
+                author {
+                    login
+                }
+                title
+                number
+                repository {
+                    nameWithOwner
+                }
+                createdAt
+                labels(first: 10) {
+                    nodes {
+                        name
+                    }
+                }
+                reactions(first: 100) {
+                    nodes {
+                        content
+                        user {
+                            login
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
 """
 
 
@@ -381,9 +406,9 @@ class GitHub(_Client):
         known_github_users: An[Iterable[Account] | None, Doc("Known user accounts.")] = None,
         *,
         allow_labels: An[set[str] | None, Doc("A set of labels to keep.")] = None,
-    ) -> An[dict[tuple[str, str], Issue], Doc("A dictionary of issues.")]:
-        """Get issues from GitHub."""
-        _logger.debug("Fetching issues from GitHub.")
+    ) -> An[dict[tuple[str, str], Issue], Doc("A dictionary of issues and pull requests.")]:
+        """Get issues and pull requests from GitHub."""
+        _logger.debug("Fetching issues and pull requests from GitHub.")
 
         known_users = {account.name: account for account in (known_github_users or ())}
         issues = {}
@@ -394,29 +419,31 @@ class GitHub(_Client):
 
         while True:
             # Get issues data.
-            _logger.debug(f"Fetching page of issues from GitHub with cursor {cursor}.")
+            _logger.debug(f"Fetching page of issues and pull requests from GitHub with cursor {cursor}.")
             payload = {"query": _GRAPHQL_ISSUES_QUERY % {"after": cursor, "query": query}}
             response = self.http_client.post("/graphql", json=payload)
             response.raise_for_status()
 
             # Process issues data.
             data = response.json()["data"]
-            for issue in data["search"]["nodes"]:
-                if issue["__typename"] != "Issue":
+            for item in data["search"]["nodes"]:
+                if item["__typename"] not in ("Issue", "PullRequest"):
                     continue
-                author_id = issue["author"]["login"].removesuffix("[bot]")
-                repository = issue["repository"]["nameWithOwner"]
-                title = issue["title"]
-                number = issue["number"]
-                created_at = datetime.strptime(issue["createdAt"], "%Y-%m-%dT%H:%M:%SZ")  # noqa: DTZ007
-                labels = {label["name"] for label in issue["labels"]["nodes"] if label["name"] in allow_labels}
+                    
+                author_id = item["author"]["login"].removesuffix("[bot]")
+                repository = item["repository"]["nameWithOwner"]
+                title = item["title"]
+                number = item["number"]
+                created_at = datetime.strptime(item["createdAt"], "%Y-%m-%dT%H:%M:%SZ")  # noqa: DTZ007
+                labels = {label["name"] for label in item["labels"]["nodes"] if label["name"] in allow_labels}
+                is_pull_request = item["__typename"] == "PullRequest"
 
                 if author_id not in known_users:
                     known_users[author_id] = Account(name=author_id, platform="github")
                 author = known_users[author_id]
 
                 upvotes = set()
-                for reaction in issue["reactions"]["nodes"]:
+                for reaction in item["reactions"]["nodes"]:
                     if reaction["content"] == "THUMBS_UP":
                         upvoter_id = reaction["user"]["login"]
                         if upvoter_id not in known_users:
@@ -433,6 +460,7 @@ class GitHub(_Client):
                     author=author,
                     upvotes=upvotes,
                     labels=labels,
+                    is_pr=is_pull_request,
                 )
 
             # Check for next page.
