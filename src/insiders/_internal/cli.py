@@ -32,13 +32,14 @@ from __future__ import annotations
 import json
 import shlex
 import sys
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from functools import wraps
 from inspect import cleandoc
 from pathlib import Path  # noqa: TC003
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from typing import Annotated as An
-from typing import Any, Callable, ClassVar, Literal
 
 import cappa
 from rich.console import Console
@@ -56,6 +57,9 @@ from insiders._internal.ops.backlog import get_backlog, print_backlog
 from insiders._internal.ops.projects import new_public_and_insiders_github_projects
 from insiders._internal.ops.sponsors import print_sponsors
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _GROUP_ARGUMENTS = (10, "Arguments")
 _GROUP_OPTIONS = (20, "Options")
 _GROUP_GLOBAL_OPTIONS = (30, "Global options")
@@ -65,7 +69,7 @@ _GROUP_SUBCOMMANDS = (40, "Subcommands")
 @dataclass(frozen=True)
 class _FromConfig(cappa.ValueFrom):
     def __init__(self, field: Unset | property, /) -> None:
-        attr_name = field.fget.__name__ if isinstance(field, property) else field.name  # type: ignore[union-attr]
+        attr_name = field.fget.__name__ if isinstance(field, property) else field.name  # ty:ignore[unresolved-attribute]
         super().__init__(self._from_config, attr_name=attr_name)
 
     @staticmethod
@@ -78,7 +82,7 @@ class _FromConfig(cappa.ValueFrom):
 # ============================================================================ #
 # Backlog                                                                      #
 # ============================================================================ #
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="backlog",
     help="List the backlog.",
     description=cleandoc(
@@ -100,7 +104,7 @@ class CommandBacklog:
         cappa.Arg(
             short=False,
             long=False,
-            default=cappa.Env("BACKLOG_NAMESPACES") | _FromConfig(Config.backlog_namespaces),
+            default=cappa.Env("BACKLOG_NAMESPACES") | _FromConfig(Config.backlog_namespaces),  # ty:ignore[invalid-argument-type]
             show_default=f"`BACKLOG_NAMESPACES` env-var or {Config.backlog_namespaces}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -112,7 +116,7 @@ class CommandBacklog:
         cappa.Arg(
             short="-i",
             long=True,
-            default=_FromConfig(Config.backlog_issue_labels),
+            default=_FromConfig(Config.backlog_issue_labels),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.backlog_issue_labels}",
             group=_GROUP_OPTIONS,
         ),
@@ -124,7 +128,7 @@ class CommandBacklog:
         cappa.Arg(
             short="-l",
             long=True,
-            default=_FromConfig(Config.backlog_limit),
+            default=_FromConfig(Config.backlog_limit),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.backlog_limit} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -137,7 +141,7 @@ class CommandBacklog:
             short="-s",
             long=True,
             parse=_parse_sort,
-            default=_FromConfig(Config.backlog_sort),
+            default=_FromConfig(Config.backlog_sort),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.backlog_sort}",
             group=_GROUP_OPTIONS,
         ),
@@ -154,7 +158,7 @@ class CommandBacklog:
         str,
         cappa.Arg(
             short=False,
-            long=("--plt", "--polar-token"),
+            long=("--plt", "--polar-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.backlog_polar_token),
             show_default="`POLAR_TOKEN` env-var or `backlog.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -166,8 +170,8 @@ class CommandBacklog:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--plb", "--polar-beneficiaries"),
-            default=_FromConfig(Config.sponsors_polar_beneficiaries),
+            long=("--plb", "--polar-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -178,7 +182,7 @@ class CommandBacklog:
         str,
         cappa.Arg(
             short=False,
-            long=("--ght", "--github-token"),
+            long=("--ght", "--github-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.backlog_github_token),
             show_default="`GITHUB_TOKEN` env-var or `backlog.github-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -190,8 +194,8 @@ class CommandBacklog:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghb", "--github-beneficiaries"),
-            default=_FromConfig(Config.sponsors_github_beneficiaries),
+            long=("--ghb", "--github-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -230,7 +234,7 @@ class CommandBacklog:
 # ============================================================================ #
 # Index                                                                        #
 # ============================================================================ #
-@cappa.command(name="index", help="Manage the local index.")
+@cappa.command(name="index", help="Manage the local index.")  # ty:ignore[call-non-callable]
 @dataclass(kw_only=True)
 class CommandIndex:
     """Command to manage the local index."""
@@ -249,7 +253,7 @@ class CommandIndex:
     ]
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="list",
     help="List insiders repositories.",
     description="List the watched repositories.",
@@ -263,7 +267,7 @@ class CommandIndexList:
         cappa.Arg(
             short="-s",
             long=True,
-            default=_FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -275,7 +279,7 @@ class CommandIndexList:
         cappa.Arg(
             short="-d",
             long=True,
-            default=_FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -313,7 +317,7 @@ class CommandIndexList:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="add",
     help="Add insiders repositories.",
     description="Add a repository to the watched repositories.",
@@ -333,7 +337,7 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-s",
             long=True,
-            default=_FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -345,7 +349,7 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-d",
             long=True,
-            default=_FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -357,7 +361,7 @@ class CommandIndexAdd:
         cappa.Arg(
             short="-u",
             long=True,
-            default=_FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -372,7 +376,7 @@ class CommandIndexAdd:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="remove",
     help="Remove insiders repositories.",
     description="Remove a repository from the watched repositories.",
@@ -392,7 +396,7 @@ class CommandIndexRemove:
         cappa.Arg(
             short="-s",
             long=True,
-            default=_FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -404,7 +408,7 @@ class CommandIndexRemove:
         cappa.Arg(
             short="-d",
             long=True,
-            default=_FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -419,7 +423,7 @@ class CommandIndexRemove:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="update",
     help="Update insiders packages.",
     description="Update watched projects.",
@@ -439,7 +443,7 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-s",
             long=True,
-            default=_FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -451,7 +455,7 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-d",
             long=True,
-            default=_FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -463,7 +467,7 @@ class CommandIndexUpdate:
         cappa.Arg(
             short="-u",
             long=True,
-            default=_FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -477,7 +481,7 @@ class CommandIndexUpdate:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="start",
     help="Start the server.",
     description="Start the server in the background.",
@@ -491,7 +495,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-s",
             long=True,
-            default=_FromConfig(Config.index_sources_directory),
+            default=_FromConfig(Config.index_sources_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_sources_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -503,7 +507,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-d",
             long=True,
-            default=_FromConfig(Config.index_distributions_directory),
+            default=_FromConfig(Config.index_distributions_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_distributions_directory} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -515,7 +519,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-u",
             long=True,
-            default=_FromConfig(Config.index_url),
+            default=_FromConfig(Config.index_url),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_url} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -527,7 +531,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-b",
             long=True,
-            default=_FromConfig(Config.index_start_in_background),
+            default=_FromConfig(Config.index_start_in_background),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_start_in_background} or {{default}}",
             group=_GROUP_OPTIONS,
         ),
@@ -539,7 +543,7 @@ class CommandIndexStart:
         cappa.Arg(
             short="-l",
             long=True,
-            default=_FromConfig(Config.index_log_path),
+            default=_FromConfig(Config.index_log_path),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.index_log_path} or standard error",
             group=_GROUP_OPTIONS,
         ),
@@ -553,7 +557,7 @@ class CommandIndexStart:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="status",
     help="Show the server status.",
     description="Show the server status.",
@@ -573,7 +577,7 @@ class CommandIndexStatus:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="stop",
     help="Stop the server.",
     description="Stop the server.",
@@ -587,7 +591,7 @@ class CommandIndexStop:
         return 0 if Index().stop() else 1
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="logs",
     help="Show the server logs.",
     description="Show the server logs.",
@@ -613,7 +617,7 @@ class CommandIndexLogs:
 # ============================================================================ #
 # Projects                                                                     #
 # ============================================================================ #
-@cappa.command(name="project", help="Manage projects (GitHub and local copies).")
+@cappa.command(name="project", help="Manage projects (GitHub and local copies).")  # ty:ignore[call-non-callable]
 @dataclass(kw_only=True)
 class CommandProject:
     """Command to manage projects on GitHub and locally."""
@@ -625,7 +629,7 @@ class CommandProject:
     ]
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="create",
     help="Create public/insiders repositories.",
     description=cleandoc(
@@ -696,7 +700,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-n",
             long=True,
-            default=_FromConfig(Config.project_namespace),
+            default=_FromConfig(Config.project_namespace),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_namespace}",
             group=_GROUP_OPTIONS,
         ),
@@ -708,7 +712,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-o",
             long=True,
-            default=_FromConfig(Config.project_directory),
+            default=_FromConfig(Config.project_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_directory}",
             group=_GROUP_OPTIONS,
         ),
@@ -726,19 +730,19 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-N",
             long=True,
-            default=_FromConfig(Config.project_insiders_namespace),
+            default=_FromConfig(Config.project_insiders_namespace),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_insiders_namespace} or public namespace",
             group=_GROUP_OPTIONS,
         ),
         Doc("""Namespace of the insiders repository."""),
     ] = None
 
-    insiders_project_directory: An[  # type: ignore[misc]
+    insiders_project_directory: An[
         Path,
         cappa.Arg(
             short="-O",
             long=True,
-            default=_FromConfig(Config.project_insiders_directory),
+            default=_FromConfig(Config.project_insiders_directory),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_insiders_directory}",
             group=_GROUP_OPTIONS,
         ),
@@ -750,7 +754,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-u",
             long=True,
-            default=_FromConfig(Config.project_github_username),
+            default=_FromConfig(Config.project_github_username),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_github_username} or public namespace",
             group=_GROUP_OPTIONS,
         ),
@@ -762,7 +766,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-t",
             long=True,
-            default=_FromConfig(Config.project_copier_template),
+            default=_FromConfig(Config.project_copier_template),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_copier_template}",
             group=_GROUP_OPTIONS,
         ),
@@ -779,7 +783,7 @@ class CommandProjectCreate:
             short="-a",
             long=True,
             parse=_parse_dict,
-            default=_FromConfig(Config.project_copier_template_answers),
+            default=_FromConfig(Config.project_copier_template_answers),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_copier_template_answers}",
             group=_GROUP_OPTIONS,
         ),
@@ -793,7 +797,7 @@ class CommandProjectCreate:
             long=True,
             num_args=1,
             parse=shlex.split,
-            default=_FromConfig(Config.project_post_creation_command),
+            default=_FromConfig(Config.project_post_creation_command),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_post_creation_command}",
             group=_GROUP_OPTIONS,
         ),
@@ -805,7 +809,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-i",
             long=True,
-            default=_FromConfig(Config.project_register_on_pypi),
+            default=_FromConfig(Config.project_register_on_pypi),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_register_on_pypi}",
             group=_GROUP_OPTIONS,
         ),
@@ -817,7 +821,7 @@ class CommandProjectCreate:
         cappa.Arg(
             short="-y",
             long=True,
-            default=_FromConfig(Config.project_pypi_username),
+            default=_FromConfig(Config.project_pypi_username),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_pypi_username}",
             group=_GROUP_OPTIONS,
         ),
@@ -852,7 +856,7 @@ class CommandProjectCreate:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="check",
     help="Check public/insiders repositories.",
     description=cleandoc(
@@ -870,7 +874,7 @@ class CommandProjectCheck:
         raise cappa.Exit("Not implemented yet.", code=1)
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="register-pypi",
     help="Register a name on PyPI.",
     description=cleandoc(
@@ -921,7 +925,7 @@ class CommandProjectPyPIRegister:
         cappa.Arg(
             short="-u",
             long=True,
-            default=_FromConfig(Config.project_pypi_username),
+            default=_FromConfig(Config.project_pypi_username),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.project_pypi_username}",
             group=_GROUP_OPTIONS,
         ),
@@ -949,7 +953,7 @@ class CommandProjectPyPIRegister:
 # ============================================================================ #
 # Sponsors                                                                     #
 # ============================================================================ #
-@cappa.command(name="sponsors", help="Manage sponsors.")
+@cappa.command(name="sponsors", help="Manage sponsors.")  # ty:ignore[call-non-callable]
 @dataclass(kw_only=True)
 class CommandSponsors:
     """Command to manage sponsors."""
@@ -961,7 +965,7 @@ class CommandSponsors:
     ]
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="list",
     help="List sponsors.",
     description=cleandoc(
@@ -978,8 +982,8 @@ class CommandSponsorsList:
         str,
         cappa.Arg(
             short=False,
-            long=("--ghsa", "--github-sponsored-account"),
-            default=_FromConfig(Config.sponsors_github_sponsored_account),
+            long=("--ghsa", "--github-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -990,8 +994,8 @@ class CommandSponsorsList:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--ghiu", "--github-include-users"),
-            default=_FromConfig(Config.sponsors_include_users),
+            long=("--ghiu", "--github-include-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_include_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1002,8 +1006,8 @@ class CommandSponsorsList:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--gheu", "--github-exclude-users"),
-            default=_FromConfig(Config.sponsors_exclude_users),
+            long=("--gheu", "--github-exclude-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_exclude_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1014,8 +1018,8 @@ class CommandSponsorsList:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghb", "--github-beneficiaries"),
-            default=_FromConfig(Config.sponsors_github_beneficiaries),
+            long=("--ghb", "--github-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1026,7 +1030,7 @@ class CommandSponsorsList:
         str,
         cappa.Arg(
             short=False,
-            long=("--ght", "--github-token"),
+            long=("--ght", "--github-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1038,8 +1042,8 @@ class CommandSponsorsList:
         str,
         cappa.Arg(
             short=False,
-            long=("--plsa", "--polar-sponsored-account"),
-            default=_FromConfig(Config.sponsors_polar_sponsored_account),
+            long=("--plsa", "--polar-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1050,8 +1054,8 @@ class CommandSponsorsList:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--plb", "--polar-beneficiaries"),
-            default=_FromConfig(Config.sponsors_polar_beneficiaries),
+            long=("--plb", "--polar-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1062,7 +1066,7 @@ class CommandSponsorsList:
         str,
         cappa.Arg(
             short=False,
-            long=("--plt", "--polar-token"),
+            long=("--plt", "--polar-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1075,7 +1079,7 @@ class CommandSponsorsList:
         cappa.Arg(
             short="-m",
             long=True,
-            default=_FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1116,7 +1120,7 @@ class CommandSponsorsList:
         return 0
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="show",
     help="Show details about a sponsor/user.",
     description=cleandoc(
@@ -1135,7 +1139,7 @@ class CommandSponsorsShow:
             short=False,
             long=False,
             num_args=1,
-            default=_FromConfig(Config.sponsors_insiders_team),
+            default=_FromConfig(Config.sponsors_insiders_team),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_insiders_team}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -1146,8 +1150,8 @@ class CommandSponsorsShow:
         str,
         cappa.Arg(
             short=False,
-            long=("--ghsa", "--github-sponsored-account"),
-            default=_FromConfig(Config.sponsors_github_sponsored_account),
+            long=("--ghsa", "--github-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1158,8 +1162,8 @@ class CommandSponsorsShow:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--iu", "--include-users"),
-            default=_FromConfig(Config.sponsors_include_users),
+            long=("--iu", "--include-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_include_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1170,8 +1174,8 @@ class CommandSponsorsShow:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--eu", "--exclude-users"),
-            default=_FromConfig(Config.sponsors_exclude_users),
+            long=("--eu", "--exclude-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_exclude_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1182,8 +1186,8 @@ class CommandSponsorsShow:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghb", "--github-beneficiaries"),
-            default=_FromConfig(Config.sponsors_github_beneficiaries),
+            long=("--ghb", "--github-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1194,7 +1198,7 @@ class CommandSponsorsShow:
         str,
         cappa.Arg(
             short=False,
-            long=("--ght", "--github-token"),
+            long=("--ght", "--github-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1206,8 +1210,8 @@ class CommandSponsorsShow:
         str,
         cappa.Arg(
             short=False,
-            long=("--plsa", "--polar-sponsored-account"),
-            default=_FromConfig(Config.sponsors_polar_sponsored_account),
+            long=("--plsa", "--polar-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1218,7 +1222,7 @@ class CommandSponsorsShow:
         str,
         cappa.Arg(
             short=False,
-            long=("--plt", "--polar-token"),
+            long=("--plt", "--polar-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1231,7 +1235,7 @@ class CommandSponsorsShow:
         cappa.Arg(
             short="-m",
             long=True,
-            default=_FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1249,7 +1253,7 @@ class CommandSponsorsShow:
         raise NotImplementedError("Not implemented yet.")
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="team-list",
     help="List members of a team.",
     description=cleandoc(
@@ -1267,7 +1271,7 @@ class CommandSponsorsTeamList:
         raise cappa.Exit("Not implemented yet.", code=1)
 
 
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="team-sync",
     help="Synchronize members of a team with current sponsors.",
     description=cleandoc(
@@ -1288,7 +1292,7 @@ class CommandSponsorsTeamSync:
             short=False,
             long=False,
             num_args=1,
-            default=_FromConfig(Config.sponsors_insiders_team),
+            default=_FromConfig(Config.sponsors_insiders_team),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_insiders_team}",
             group=_GROUP_ARGUMENTS,
         ),
@@ -1299,8 +1303,8 @@ class CommandSponsorsTeamSync:
         str,
         cappa.Arg(
             short=False,
-            long=("--ghsa", "--github-sponsored-account"),
-            default=_FromConfig(Config.sponsors_github_sponsored_account),
+            long=("--ghsa", "--github-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1311,8 +1315,8 @@ class CommandSponsorsTeamSync:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--iu", "--include-users"),
-            default=_FromConfig(Config.sponsors_include_users),
+            long=("--iu", "--include-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_include_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_include_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1323,8 +1327,8 @@ class CommandSponsorsTeamSync:
         list[str],
         cappa.Arg(
             short=False,
-            long=("--eu", "--exclude-users"),
-            default=_FromConfig(Config.sponsors_exclude_users),
+            long=("--eu", "--exclude-users"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_exclude_users),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_exclude_users}",
             group=_GROUP_OPTIONS,
         ),
@@ -1335,8 +1339,8 @@ class CommandSponsorsTeamSync:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--ghb", "--github-beneficiaries"),
-            default=_FromConfig(Config.sponsors_github_beneficiaries),
+            long=("--ghb", "--github-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_github_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_github_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1347,7 +1351,7 @@ class CommandSponsorsTeamSync:
         str,
         cappa.Arg(
             short=False,
-            long=("--ght", "--github-token"),
+            long=("--ght", "--github-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("GITHUB_TOKEN") | _FromConfig(Config.sponsors_github_token),
             show_default="`GITHUB_TOKEN` env-var or `sponsors.github-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1359,8 +1363,8 @@ class CommandSponsorsTeamSync:
         str,
         cappa.Arg(
             short=False,
-            long=("--plsa", "--polar-sponsored-account"),
-            default=_FromConfig(Config.sponsors_polar_sponsored_account),
+            long=("--plsa", "--polar-sponsored-account"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_sponsored_account),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_sponsored_account} or none",
             group=_GROUP_OPTIONS,
         ),
@@ -1371,8 +1375,8 @@ class CommandSponsorsTeamSync:
         dict[str, list[str]],
         cappa.Arg(
             short=False,
-            long=("--plb", "--polar-beneficiaries"),
-            default=_FromConfig(Config.sponsors_polar_beneficiaries),
+            long=("--plb", "--polar-beneficiaries"),  # ty:ignore[invalid-argument-type]
+            default=_FromConfig(Config.sponsors_polar_beneficiaries),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_polar_beneficiaries}",
             group=_GROUP_OPTIONS,
         ),
@@ -1383,7 +1387,7 @@ class CommandSponsorsTeamSync:
         str,
         cappa.Arg(
             short=False,
-            long=("--plt", "--polar-token"),
+            long=("--plt", "--polar-token"),  # ty:ignore[invalid-argument-type]
             default=cappa.Env("POLAR_TOKEN") | _FromConfig(Config.sponsors_polar_token),
             show_default="`POLAR_TOKEN` env-var or `sponsors.polar-token-command` config-value",
             group=_GROUP_OPTIONS,
@@ -1396,7 +1400,7 @@ class CommandSponsorsTeamSync:
         cappa.Arg(
             short="-m",
             long=True,
-            default=_FromConfig(Config.sponsors_minimum_amount),
+            default=_FromConfig(Config.sponsors_minimum_amount),  # ty:ignore[invalid-argument-type]
             show_default=f"{Config.sponsors_minimum_amount} or `{{default}}`",
             group=_GROUP_OPTIONS,
         ),
@@ -1438,7 +1442,7 @@ class CommandSponsorsTeamSync:
 # ============================================================================ #
 # Main                                                                         #
 # ============================================================================ #
-@cappa.command(
+@cappa.command(  # ty:ignore[call-non-callable]
     name="insiders",
     help="Manage your Insiders projects.",
     description=cleandoc(
@@ -1605,7 +1609,7 @@ def main(
     help_formatter = cappa.HelpFormatter(default_format="Default: {default}.")
 
     try:
-        return cappa.invoke(
+        return cappa.invoke(  # ty:ignore[call-non-callable]
             CommandMain,
             argv=args,
             output=output,

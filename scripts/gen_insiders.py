@@ -1,3 +1,21 @@
+# SPDX-License-Identifier: ISC
+#
+# ISC License
+#
+# Copyright (c) 2023, Timothée Mazzucotelli and contributors
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
 """Functions related to Insiders funding goals."""
 
 from __future__ import annotations
@@ -59,7 +77,7 @@ class Feature:
         if badge:
             recent = self.since and date.today() - self.since <= timedelta(days=60)  # noqa: DTZ011
             if recent:
-                ft_date = self.since.strftime("%B %d, %Y")  # type: ignore[union-attr]
+                ft_date = self.since.strftime("%B %d, %Y")
                 new = f' :material-alert-decagram:{{ .new-feature .vibrate title="Added on {ft_date}" }}'
         project = f"[{self.project.name}]({self.project.url}) — " if self.project else ""
         feature = f"[{self.name}]({self.url(rel_base)})" if self.ref else self.name
@@ -84,7 +102,7 @@ class Goal:
         if self.features:
             for feature in self.features:
                 feature.render(rel_base)
-            print("")
+            print()
         else:
             print("There are no features in this goal for this project.  ")
             print(
@@ -193,8 +211,8 @@ def load_json(url: str) -> str | list | dict:
 data_source = globals()["data_source"]
 sponsor_url = "https://github.com/sponsors/pawamoy"
 data_url = "https://raw.githubusercontent.com/pawamoy/sponsors/main"
-numbers: dict[str, int] = load_json(f"{data_url}/numbers.json")  # type: ignore[assignment]
-sponsors: list[dict] = load_json(f"{data_url}/sponsors.json")  # type: ignore[assignment]
+numbers: dict[str, int] = load_json(f"{data_url}/numbers.json")  # ty:ignore[invalid-assignment]
+sponsors: list[dict] = load_json(f"{data_url}/sponsors.json")  # ty:ignore[invalid-assignment]
 current_funding = numbers["total"]
 sponsors_count = numbers["count"]
 goals = funding_goals(data_source, funding=current_funding)

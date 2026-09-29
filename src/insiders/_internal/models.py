@@ -1,19 +1,38 @@
+# SPDX-License-Identifier: ISC
+#
+# ISC License
+#
+# Copyright (c) 2023, Timothée Mazzucotelli and contributors
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
 # Data models.
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, TypeAlias
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias
 from typing import Annotated as An
 
 from typing_extensions import Doc, Self
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from datetime import datetime
 
 
-SponsorshipPlatform: An[TypeAlias, Doc("The supported sponsorship platforms.")] = Literal["github", "polar"]
+SponsorshipPlatform: An[TypeAlias, Doc("The supported sponsorship platforms.")] = Literal["github", "polar"]  # ty:ignore[invalid-type-form]
 
 
 @dataclass(kw_only=True, eq=False, frozen=True)
@@ -204,8 +223,8 @@ class Backlog:
         ) -> Callable[[Issue], int]:
             """Sort by minimum upvoters sponsorships."""
             factor = -1 if reverse else 1
-            return lambda issue: factor * (
-                total if (total := sum(upvoter.tier_sum for upvoter in issue.upvotes)) >= amount else 0
+            return lambda issue: (
+                factor * (total if (total := sum(upvoter.tier_sum for upvoter in issue.upvotes)) >= amount else 0)
             )
 
         @staticmethod

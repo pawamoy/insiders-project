@@ -1,3 +1,21 @@
+# SPDX-License-Identifier: ISC
+#
+# ISC License
+#
+# Copyright (c) 2023, Timothée Mazzucotelli and contributors
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
 # Logging utilities.
 
 from __future__ import annotations
@@ -44,8 +62,8 @@ def _run(
     )
     stdout = []
     while True:
-        stdout_line = process.stdout.readline().strip()  # type: ignore[union-attr]
-        stderr_line = process.stderr.readline().strip()  # type: ignore[union-attr]
+        stdout_line = process.stdout.readline().strip()  # ty:ignore[unresolved-attribute]
+        stderr_line = process.stderr.readline().strip()  # ty:ignore[unresolved-attribute]
         if stdout_line:
             _logger.debug(f"STDOUT: {_double_brackets(stdout_line)}", pkg=args[0])
             stdout.append(stdout_line)
@@ -70,7 +88,7 @@ class _TextBuffer(StringIO):
     def __init__(self, log_func: Callable[[str], None], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.log_func = log_func
-        self.buffer = self._BytesBuffer(self)  # type: ignore[misc,assignment]
+        self.buffer = self._BytesBuffer(self)  # ty:ignore[invalid-assignment]
 
     def write(self, message: str) -> int:
         for line in message.splitlines(keepends=False):
@@ -107,7 +125,7 @@ def _log_captured(
 
 def _tail(log_file: An[str, Doc("The log file to tail.")]) -> None:
     """Tail a log file."""
-    with open(log_file) as file:
+    with open(log_file) as file:  # noqa: PTH123
         try:
             while True:
                 line = file.readline()
@@ -120,7 +138,7 @@ def _tail(log_file: An[str, Doc("The log file to tail.")]) -> None:
 
 
 def _update_record(record: Record) -> None:
-    record["pkg"] = record["extra"].get("pkg") or (record["name"] or "").split(".", 1)[0]  # type: ignore[typeddict-unknown-key]
+    record["pkg"] = record["extra"].get("pkg") or (record["name"] or "").split(".", 1)[0]  # ty:ignore[invalid-key]
 
 
 class _InterceptHandler(logging.Handler):
@@ -172,7 +190,7 @@ class _InterceptHandler(logging.Handler):
         # Find caller from where originated the logged message.
         frame, depth = sys._getframe(6), 6
         while frame and frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back  # type: ignore[assignment]
+            frame = frame.f_back
             depth += 1
 
         # Log the message, replacing new lines with spaces.
@@ -220,7 +238,7 @@ def _configure_logging(
         "<level>{level: <8}</level> | <cyan>{pkg}</cyan> - <level>{message}</level>"
     )
     handler = {"sink": sink, "level": log_level, "format": loguru_format}
-    _logger.configure(handlers=[handler])  # type: ignore[list-item]
+    _logger.configure(handlers=[handler])  # ty:ignore[invalid-argument-type]
 
 
 _logger = logger.patch(_update_record)
