@@ -1,9 +1,9 @@
 # insiders
 
 [![ci](https://github.com/pawamoy/insiders-project/workflows/ci/badge.svg)](https://github.com/pawamoy/insiders-project/actions?query=workflow%3Aci)
-[![documentation](https://img.shields.io/badge/docs-mkdocs-708FCC.svg?style=flat)](https://pawamoy.github.io/insiders-project/)
+[![documentation](https://img.shields.io/badge/docs-zensical-FF9100.svg?style=flat)](https://pawamoy.github.io/insiders-project/)
 [![pypi version](https://img.shields.io/pypi/v/insiders.svg)](https://pypi.org/project/insiders/)
-[![gitter](https://badges.gitter.im/join%20chat.svg)](https://app.gitter.im/#/room/#insiders-project:gitter.im)
+[![gitter](https://img.shields.io/badge/matrix-chat-4DB798.svg?style=flat)](https://app.gitter.im/#/room/#insiders-project:gitter.im)
 
 Manage your Insiders projects.
 
@@ -193,3 +193,7 @@ some-github-account = [
 
 More documentation will be added later, for now ask @pawamoy for details (see where I can be reached on my profile) 🙂
 
+## Sponsors
+
+<!-- sponsors-start -->
+<!-- sponsors-end -->
