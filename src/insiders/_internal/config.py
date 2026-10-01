@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import subprocess
-import sys
+import tomllib
 from dataclasses import dataclass, fields
 from dataclasses import field as dataclass_field
 from typing import TYPE_CHECKING, Any, overload
@@ -34,12 +34,6 @@ from insiders._internal.models import Backlog  # noqa: F401
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-
-# YORE: EOL 3.10: Replace block with line 2.
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 class Unset:

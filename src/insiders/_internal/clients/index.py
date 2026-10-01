@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import os
 import shutil
-import sys
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -41,12 +41,6 @@ from unearth import PackageFinder
 
 from insiders._internal import defaults
 from insiders._internal.logger import _log_captured, _logger, _redirect_output_to_logging, _run
-
-# YORE: EOL 3.10: Replace block with line 2.
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator

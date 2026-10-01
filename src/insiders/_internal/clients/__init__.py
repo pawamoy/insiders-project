@@ -18,10 +18,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 from typing import Annotated as An
 
-from typing_extensions import Doc, Self
+from typing_extensions import Doc
 
 if TYPE_CHECKING:
     from types import TracebackType

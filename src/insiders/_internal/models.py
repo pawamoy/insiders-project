@@ -22,10 +22,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeAlias
 from typing import Annotated as An
 
-from typing_extensions import Doc, Self
+from typing_extensions import Doc
 
 if TYPE_CHECKING:
     from collections.abc import Callable
