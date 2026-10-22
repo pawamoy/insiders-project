@@ -13,6 +13,7 @@ ignore = [
     "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
     "ARG005",  # Unused lambda argument
     "C901",  # Too complex
+    "COM812",  # Trailing comma, making formatting unstable
     "D105",  # Missing docstring in magic method
     "D411",  # Missing blank line before section header
     "D412",  # No blank lines allowed between a section header and its content
